@@ -1,0 +1,58 @@
+@extends('layouts.app')
+
+@section('title', 'Edit Tugas')
+
+@section('content')
+<div class="card card-warning">
+    <div class="card-header">
+        <h3 class="card-title">Edit Tugas</h3>
+    </div>
+    <form method="POST" action="{{ route('tasks.update', $dummyTask['id']) }}">
+        @csrf @method('PUT')
+        <div class="card-body">
+            @if ($errors->any())
+                <div class="alert alert-danger">
+                    <ul class="mb-0">
+                        @foreach ($errors->all() as $error)
+                            <li>{{ $error }}</li>
+                        @endforeach
+                    </ul>
+                </div>
+            @endif
+
+            <div class="form-group">
+                <label for="title">Judul Tugas</label>
+                <input type="text" name="title" class="form-control @error('title') is-invalid @enderror" value="{{ old('title', $dummyTask['title']) }}" required>
+                @error('title') <span class="text-danger">{{ $message }}</span> @enderror
+            </div>
+
+            <div class="form-group">
+                <label for="description">Deskripsi</label>
+                <textarea name="description" class="form-control @error('description') is-invalid @enderror" rows="3">{{ old('description', $dummyTask['description']) }}</textarea>
+                @error('description') <span class="text-danger">{{ $message }}</span> @enderror
+            </div>
+
+            <div class="form-group">
+                <label for="deadline">Tenggat Waktu</label>
+                <input type="date" name="deadline" class="form-control @error('deadline') is-invalid @enderror" value="{{ old('deadline', $dummyTask['deadline']) }}" required>
+                @error('deadline') <span class="text-danger">{{ $message }}</span> @enderror
+            </div>
+
+            <div class="form-group">
+                <label for="priority">Prioritas</label>
+                <select name="priority" class="form-control @error('priority') is-invalid @enderror" required>
+                    <option value="Low" {{ old('priority', $dummyTask['priority']) == 'Low' ? 'selected' : '' }}>Low</option>
+                    <option value="Medium" {{ old('priority', $dummyTask['priority']) == 'Medium' ? 'selected' : '' }}>Medium</option>
+                    <option value="High" {{ old('priority', $dummyTask['priority']) == 'High' ? 'selected' : '' }}>High</option>
+                    <option value="Urgent" {{ old('priority', $dummyTask['priority']) == 'Urgent' ? 'selected' : '' }}>Urgent</option>
+                </select>
+                @error('priority') <span class="text-danger">{{ $message }}</span> @enderror
+            </div>
+        </div>
+        <div class="card-footer">
+            <button type="submit" class="btn btn-warning">Update (Dummy)</button>
+            <a href="{{ route('tasks.show', $dummyTask['id']) }}" class="btn btn-secondary">Batal</a>
+        </div>
+    </form>
+</div>
+@endsection
