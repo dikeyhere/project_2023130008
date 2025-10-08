@@ -4,7 +4,7 @@
 
 @section('content')
 <!-- Role-based Greeting (Langsung di content, no wrapper tambahan) -->
-<div class="row">
+{{-- <div class="row">
     <div class="col-12">
         <div class="alert alert-info alert-dismissible fade show" role="alert">
             Selamat datang, {{ Auth::user()->name }}! Role: <strong>{{ ucfirst($userRole ?? 'User ') }}</strong>
@@ -20,7 +20,20 @@
             </button>
         </div>
     </div>
+</div> --}}
+<!-- Role-based Greeting (Modifikasi: Abu muda, hanya nama, conditional show) -->
+@if(isset($showWelcome) && $showWelcome)
+<div class="row">
+    <div class="col-12">
+        <div class="alert alert-light alert-dismissible fade show border rounded" role="alert" style="background-color: #f8f9fa; border-color: #dee2e6;">
+            Selamat datang, {{ Auth::user()->name }}!
+            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+            </button>
+        </div>
+    </div>
 </div>
+@endif
 
 <!-- Info Cards (Stats) - Responsive grid -->
 <div class="row">
@@ -69,7 +82,7 @@
             </a>
         </div>
     </div>
-    <div class="col-lg-3 col-6">
+    {{-- <div class="col-lg-3 col-6">
         <!-- Completed Tasks -->
         <div class="small-box bg-danger">
             <div class="inner">
@@ -81,6 +94,27 @@
             </div>
             <a href="{{ route('tasks.index') }}" class="small-box-footer" title="Lihat tasks selesai">
                 Detail <i class="fas fa-arrow-circle-right"></i>
+            </a>
+        </div>
+    </div> --}}
+    <div class="col-lg-3 col-6">
+        <!-- Persentase Penyelesaian Tasks (Modifikasi: Ganti dari Tasks Selesai) -->
+        <div class="small-box bg-primary">  <!-- Ganti bg-danger ke bg-primary (biru untuk progress) -->
+            <div class="inner">
+                <h3>
+                    @if($totalTasks > 0)
+                        {{ number_format(($completedTasks / $totalTasks) * 100, 1) }}%
+                    @else
+                        0%
+                    @endif
+                </h3>
+                <p>Persentase Penyelesaian</p>
+            </div>
+            <div class="icon">
+                <i class="fas fa-chart-pie"></i>  <!-- Ganti icon ke pie chart untuk represent progress -->
+            </div>
+            <a href="{{ route('tasks.index') }}" class="small-box-footer" title="Lihat detail tasks dan progress">
+                Lihat Detail <i class="fas fa-arrow-circle-right"></i>
             </a>
         </div>
     </div>
@@ -220,9 +254,15 @@
         function() { $(this).removeClass('shadow-lg'); }
     );
 
-    // Auto-dismiss alert setelah 5s
-    setTimeout(function() {
-        $('.alert').fadeOut('slow');
-    }, 5000);
+    // Auto-hide welcome alert setelah 5 detik (hanya jika muncul) - Pindah ke ready() dan spesifik
+    $(document).ready(function() {
+        if ($('.alert-light').length > 0) {  // Cek jika alert ada (hindari affect alert lain)
+            setTimeout(function() {
+                $('.alert-light').fadeOut('slow', function() {
+                    $(this).alert('close');  // Bootstrap dismiss
+                });
+            }, 2000);  // 5 detik
+        }
+    });
 </script>
 @endpush

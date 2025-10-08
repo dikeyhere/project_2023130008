@@ -4,19 +4,35 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title inert="">{{ config('app.name', 'Manajemen Tugas Tim') }}</title>
+    <title>@yield('title', 'Dashboard') - {{ config('app.name', 'Manajemen Tugas Tim') }}</title>
 
     <!-- Font Awesome (untuk icons di navbar/sidebar) -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <!-- Fonts: Figtree (Modern sans-serif untuk tampilan clean) -->
+<link rel="preconnect" href="https://fonts.bunny.net">
+<link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
     <!-- AdminLTE CSS -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/admin-lte@3.2/dist/css/adminlte.min.css">
-    <!-- Breeze CSS -->
-    @vite(['resources/css/app.css', 'resources/js/app.js'])
+    <!-- Breeze CSS ONLY (Comment JS untuk hindari BS5 konflik; CSS tetap untuk Tailwind jika perlu) -->
+    @vite(['resources/css/app.css'])  <!-- CSS OK, JS commented di bawah -->
+    <!-- Custom CSS: Apply Figtree font global -->
+<style>
+    body { 
+        font-family: 'Figtree', sans-serif; 
+    }
+    /* Opsional: Enhance untuk AdminLTE elements (headings, cards) */
+    .content-header h1, .card-title, .small-box .inner h3 {
+        font-weight: 500;  /* Medium untuk headings */
+    }
+    .nav-link, .dropdown-item {
+        font-weight: 400;  /* Regular untuk menu/text */
+    }
+</style>
 </head>
 
 <body class="hold-transition sidebar-mini">
     <div class="wrapper">
-        {{-- <!-- Navbar (Top Bar) - Hapus @include untuk hindari duplikasi --> --}}
+        <!-- Navbar (Top Bar) -->
         <nav class="main-header navbar navbar-expand navbar-white navbar-light">
             <!-- Left navbar links -->
             <ul class="navbar-nav">
@@ -33,7 +49,7 @@
                 <!-- Profile Dropdown (Hanya untuk authenticated user) -->
                 @auth
                     <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" role="button" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" id="userDropdown" data-toggle="dropdown" aria-expanded="false">  <!-- BS4: data-toggle (AdminLTE standar) -->
                             <i class="far fa-user"></i>
                             <span class="d-none d-md-inline ml-1">{{ Auth::user()->name }}</span>
                             @if (Auth::user()->role)
@@ -42,18 +58,19 @@
                                 </span>
                             @endif
                         </a>
+                        <!-- DROPDOWN MENU: OPSI SESUAI KODE ASLI (Header, Profile link, Logout dengan confirm) -->
                         <div class="dropdown-menu dropdown-menu-lg dropdown-menu-right">
-                            <span class="dropdown-item dropdown-header">Profile: {{ Auth::user()->name }}</span>
+                            <span class="dropdown-item dropdown-header">Profile: {{ Auth::user()->name }}</span>  <!-- Header sesuai asli -->
                             <div class="dropdown-divider"></div>
-                            <a href="{{ route('profile.edit') }}" class="dropdown-item">
+                            <a href="{{ route('profile.edit') }}" class="dropdown-item">  <!-- Item 1: Profile link sesuai asli -->
                                 <i class="fas fa-user mr-2"></i>Profile
                             </a>
                             <div class="dropdown-divider"></div>
-                            <!-- Logout Form (CSRF-protected) -->
+                            <!-- Logout Form (CSRF-protected) - Sesuai asli -->
                             <form method="POST" action="{{ route('logout') }}" class="d-inline" id="logout-form">
                                 @csrf
                             </form>
-                            <a href="#" class="dropdown-item" onclick="
+                            <a href="#" class="dropdown-item" onclick="  <!-- Item 2: Logout dengan onclick confirm sesuai asli -->
                                 event.preventDefault();
                                 if(confirm('Apakah Anda yakin ingin logout?')) {
                                     document.getElementById('logout-form').submit();
@@ -159,6 +176,14 @@
                         </button>
                     </div>
                     @endif
+                    @if (session('error'))
+                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                        {{ session('error') }}
+                        <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                    @endif
                     @yield('content')
                 </div>
             </section>
@@ -171,57 +196,98 @@
         </footer>
     </div>
 
-<!-- Scripts (Urutan: jQuery dulu, AdminLTE, lalu init) -->
-<!-- jQuery (Versi stabil untuk AdminLTE) -->
-<script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>  <!-- Update ke 3.6.4 untuk compat -->
+    <!-- Scripts (Urutan: jQuery dulu, AdminLTE (include BS4), lalu Chart.js, stack child scripts) -->
+    <!-- jQuery (Versi stabil untuk AdminLTE BS4) -->
+    <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
+    
+    <!-- AdminLTE JS (Include Bootstrap 4 core + plugins, no need separate BS4 JS) -->
+    <script src="https://cdn.jsdelivr.net/npm/admin-lte@3.2.0/dist/js/adminlte.min.js"></script>
+    
+    <!-- Chart.js (Stabil, kompatibel) -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
 
-<!-- AdminLTE JS (Update CDN ke versi stabil) -->
-<script src="https://cdn.jsdelivr.net/npm/admin-lte@3.2.0/dist/js/adminlte.min.js"></script>  <!-- Tambah .0 untuk exact version -->
+    <!-- Breeze JS: COMMENTED UNTUK HINDARI KONFLIK BS5 (uncomment jika butuh, tapi test dropdown dulu) -->
+    {{-- @vite(['resources/js/app.js']) --}}
 
-<!-- Safe Manual Init AdminLTE (Cek fungsi ada dulu) -->
-<script>
-    $(document).ready(function() {
-        console.log('jQuery loaded:', typeof $ !== 'undefined');  // Debug: Konfirm jQuery OK
-        
-        // Delay init 100ms untuk pastikan AdminLTE loaded
-        setTimeout(function() {
-            // Init PushMenu (Sidebar toggle) - Hanya jika fungsi ada
-            if (typeof $.fn.pushMenu !== 'undefined') {
-                $('[data-widget="pushmenu"]').pushMenu();
-                console.log('PushMenu init success');
-            } else {
-                console.warn('PushMenu not available - AdminLTE JS mungkin gagal load');
-            }
+    <!-- Safe Manual Init AdminLTE (Enhanced: BS4 priority + BS5 fallback untuk dropdown) -->
+    <script>
+        $(document).ready(function() {
+            console.log('jQuery loaded:', typeof $ !== 'undefined');  // Debug: Konfirm jQuery OK
             
-            // Init Dropdown - Hanya jika fungsi ada (BS/jQuery compat)
-            if (typeof $.fn.dropdown !== 'undefined') {
-                $('.dropdown-toggle').dropdown();
-                console.log('Dropdown init success');
-            } else if (typeof bootstrap !== 'undefined' && bootstrap.Dropdown) {
-                // Fallback BS5
-                var dropdownElementList = [].slice.call(document.querySelectorAll('.dropdown-toggle'));
-                var dropdownList = dropdownElementList.map(function (dropdownToggleEl) {
-                    return new bootstrap.Dropdown(dropdownToggleEl, { toggle: false });
-                });
-                console.log('BS5 Dropdown fallback init success');
-            } else {
-                console.warn('Dropdown not available');
-            }
-            
-            console.log('AdminLTE Init complete');
-        }, 100);  // Delay kecil untuk CDN load
-    });
-</script>
+            // Delay init 500ms untuk pastikan semua CDN + Vite load (jika uncomment Breeze JS)
+            setTimeout(function() {
+                // Init PushMenu (Sidebar toggle)
+                if (typeof $.fn.pushMenu !== 'undefined') {
+                    $('[data-widget="pushmenu"]').pushMenu();
+                    console.log('PushMenu init success');
+                } else {
+                    console.warn('PushMenu not available');
+                }
+                
+                // Init Dropdown: BS4 Priority (AdminLTE), Fallback BS5 jika Breeze force
+                const dropdownToggle = document.querySelector('.dropdown-toggle');
+                if (dropdownToggle) {
+                    console.log('Dropdown element found, attempting init...');
+                    
+                    // BS4 jQuery way (AdminLTE default)
+                    if (typeof $.fn.dropdown !== 'undefined') {
+                        $('.dropdown-toggle').dropdown({
+                            boundary: 'viewport'  // Prevent overflow
+                        });
+                        console.log('Dropdown init: BS4 jQuery success');
+                    } 
+                    // BS5 Vanilla fallback (jika Breeze JS active)
+                    else if (typeof bootstrap !== 'undefined' && bootstrap.Dropdown) {
+                        const dropdown = new bootstrap.Dropdown(dropdownToggle, {
+                            toggle: false  // Manual trigger
+                        });
+                        // Add click event manual
+                        dropdownToggle.addEventListener('click', function(e) {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            dropdown.toggle();
+                        });
+                        console.log('Dropdown init: BS5 vanilla success');
+                    } 
+                    // Pure JS fallback (no Bootstrap)
+                    else {
+                        // Manual toggle class on click
+                        dropdownToggle.addEventListener('click', function(e) {
+                            e.preventDefault();
+                            const menu = this.nextElementSibling;
+                            if (menu.classList.contains('show')) {
+                                menu.classList.remove('show');
+                            } else {
+                                menu.classList.add('show');
+                            }
+                            console.log('Dropdown init: Pure JS fallback');
+                        });
+                        // Close on outside click
+                        document.addEventListener('click', function(e) {
+                            if (!dropdownToggle.contains(e.target) && !dropdownToggle.nextElementSibling.contains(e.target)) {
+                                dropdownToggle.nextElementSibling.classList.remove('show');
+                            }
+                        });
+                    }
+                } else {
+                    console.warn('No dropdown-toggle found');
+                }
+                
+                // Init Alerts (BS4 dismiss events) - Global
+                if (typeof $.fn.alert !== 'undefined') {
+                    $('.alert').alert();
+                    console.log('Alert dismiss init success');
+                } else {
+                    console.warn('Alert dismiss not available');
+                }
+                
+                console.log('AdminLTE Init complete');
+            }, 500);  // Delay lebih panjang untuk Vite/Breeze jika uncomment
+        });
+    </script>
 
-<!-- Chart.js -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>  <!-- Update versi stabil -->
-
-<!-- Bootstrap JS (Fallback untuk dropdown BS5) -->
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>  <!-- Update ke 5.3 -->
-
-<!-- Breeze JS (Terakhir, no conflict) -->
-@vite(['resources/js/app.js'])
-@yield('scripts')
+    <!-- Stack untuk child scripts (Render @push('scripts') dari views seperti dashboard) -->
+    @stack('scripts')
 </body>
 
 </html>
