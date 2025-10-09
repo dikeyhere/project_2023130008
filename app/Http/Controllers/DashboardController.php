@@ -4,55 +4,72 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use App\Models\Project;
+use App\Models\Task;
 
 class DashboardController extends Controller
 {
-    /**
-     * Display the dashboard.
-     */
-    public function index()
+    public function index(Request $request)
     {
-        // Dummy data untuk dashboard (projects, tasks, users stats)
-        $dummyProjects = [
-            ['id' => 1, 'name' => 'Proyek Web Development', 'status' => 'In Progress'],
-            ['id' => 2, 'name' => 'Proyek Mobile App', 'status' => 'Completed'],
-            ['id' => 3, 'name' => 'Proyek Database Optimization', 'status' => 'Planning'],
-            ['id' => 4, 'name' => 'Proyek AI Integration', 'status' => 'On Hold'],
-        ];
+        $user = Auth::user();
+        $userRole = $user->role ?? 'anggota';
 
-        $dummyTasks = [
-            ['id' => 1, 'title' => 'Design UI', 'status' => 'Completed'],
-            ['id' => 2, 'title' => 'Backend API', 'status' => 'In Progress'],
-            ['id' => 3, 'title' => 'Testing', 'status' => 'Planning'],
-        ];
-
-        // Stats summary (dummy)
-        $totalProjects = count($dummyProjects);
-        $completedProjects = collect($dummyProjects)->where('status', 'Completed')->count();
-        $totalTasks = count($dummyTasks);
-        $completedTasks = collect($dummyTasks)->where('status', 'Completed')->count();
-        $userRole = Auth::user()->role;
-
-        // Data untuk Chart.js (e.g., pie chart projects status)
-        $projectStatuses = collect($dummyProjects)->groupBy('status')->map->count()->toArray();
-
-        // Session untuk welcome alert: Hanya tampil sekali per login session
-        $showWelcome = !session()->has('welcome_shown');  // True jika belum shown
+        // Logic Alert: Hanya muncul pertama kali login (per session)
+        $showWelcome = !$request->session()->has('hasSeenWelcome');  // True jika belum ada key
         if ($showWelcome) {
-            session(['welcome_shown' => true]);  // Set flag agar tidak muncul lagi di session ini
+            $request->session()->put('hasSeenWelcome', true);  // Set persist untuk seluruh session
         }
 
-        // Pass title untuk header
+        // Base queries role-based
+        if ($userRole === 'admin') {
+            // Admin: Lihat semua
+            $totalProjects = Project::count();
+            $completedProjects = Project::where('status', 'Completed')->count();
+            $totalTasks = Task::count();
+            $completedTasks = Task::where('status', 'Completed')->count();
+            $recentProjects = Project::with(['creator', 'tasks'])->latest()->take(5)->get();
+            $projectQuery = Project::query();  // Untuk statuses
+        } elseif ($userRole === 'ketua_tim') {
+            // Ketua: Lihat semua projects (dibuat admin, untuk tim) & semua tasks
+            $totalProjects = Project::count();  // Semua projects
+            $completedProjects = Project::where('status', 'Completed')->count();
+            $totalTasks = Task::count();  // Semua tasks
+            $completedTasks = Task::where('status', 'Completed')->count();
+            $recentProjects = Project::with(['creator', 'tasks'])->latest()->take(5)->get();  // Semua recent
+            $projectQuery = Project::query();  // Semua untuk statuses
+        } else {
+            // Anggota: Projects/tasks assigned to them
+            $totalProjects = Project::whereHas('tasks', function ($q) use ($user) {
+                $q->where('assigned_to', $user->id);
+            })->count();
+            $completedProjects = Project::whereHas('tasks', function ($q) use ($user) {
+                $q->where('assigned_to', $user->id);
+            })->where('status', 'Completed')->count();  // Fix: Projects completed yang punya own tasks
+            $totalTasks = Task::where('assigned_to', $user->id)->count();
+            $completedTasks = Task::where('assigned_to', $user->id)->where('status', 'Completed')->count();
+            $recentProjects = Project::whereHas('tasks', function ($q) use ($user) {
+                $q->where('assigned_to', $user->id);
+            })->with(['creator', 'tasks'])->latest()->take(5)->get();
+            $projectQuery = Project::whereHas('tasks', function ($q) use ($user) {
+                $q->where('assigned_to', $user->id);
+            });  // Filtered untuk statuses
+        }
+
+        // Project statuses untuk chart (role-based)
+        $projectStatuses = $projectQuery->selectRaw('status, count(*) as count')
+            ->groupBy('status')
+            ->pluck('count', 'status')
+            ->toArray();
+
         return view('dashboard', compact(
-            'dummyProjects',
-            'dummyTasks',
             'totalProjects',
             'completedProjects',
             'totalTasks',
             'completedTasks',
-            'userRole',
+            'recentProjects',
             'projectStatuses',
-            'showWelcome'  // Tambah ini: Pass flag ke view
-        ))->with('title', 'Dashboard');
+            'userRole',
+            'showWelcome'
+        ));
     }
 }

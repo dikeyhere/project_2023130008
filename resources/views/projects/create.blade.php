@@ -3,58 +3,70 @@
 @section('title', 'Tambah Proyek')
 
 @section('content')
-<div class="card card-primary">
-    <div class="card-header">
-        <h3 class="card-title">Buat Proyek Baru (Dummy)</h3>
-    </div>
-    <form method="POST" action="{{ route('projects.store') }}">
-        @csrf
-        <div class="card-body">
-            @if ($errors->any())
-                <div class="alert alert-danger">
-                    <ul class="mb-0">
-                        @foreach ($errors->all() as $error)
-                            <li>{{ $error }}</li>
-                        @endforeach
-                    </ul>
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card card-primary">
+            <div class="card-header">
+                <h3 class="card-title">Tambah Proyek Baru</h3>
+            </div>
+            <form method="POST" action="{{ route('projects.store') }}">
+                @csrf
+
+                <div class="card-body">
+                    <!-- Name -->
+                    <div class="form-group">
+                        <label for="name">Nama Proyek <span class="text-danger">*</span></label>
+                        <div class="input-group">
+                            <div class="input-group-prepend">
+                                <span class="input-group-text"><i class="fas fa-project-diagram"></i></span>
+                            </div>
+                            <input type="text" name="name" id="name" class="form-control @error('name') is-invalid @enderror" value="{{ old('name') }}" required placeholder="Masukkan nama proyek">
+                            @error('name')
+                                <span class="invalid-feedback">{{ $message }}</span>
+                            @enderror
+                        </div>
+                    </div>
+
+                    <!-- Description -->
+                    <div class="form-group">
+                        <label for="description">Deskripsi</label>
+                        <div class="input-group">
+                            <div class="input-group-prepend">
+                                <span class="input-group-text"><i class="fas fa-align-left"></i></span>
+                            </div>
+                            <textarea name="description" id="description" class="form-control @error('description') is-invalid @enderror" rows="4" placeholder="Deskripsi proyek (opsional)">{{ old('description') }}</textarea>
+                            @error('description')
+                                <span class="invalid-feedback">{{ $message }}</span>
+                            @enderror
+                        </div>
+                    </div>
+
+                    <!-- Status -->
+                    <div class="form-group">
+                        <label for="status">Status <span class="text-danger">*</span></label>
+                        <div class="input-group">
+                            <div class="input-group-prepend">
+                                <span class="input-group-text"><i class="fas fa-flag"></i></span>
+                            </div>
+                            <select name="status" id="status" class="form-control @error('status') is-invalid @enderror" required>
+                                <option value="">Pilih Status</option>
+                                @foreach($statuses as $status)
+                                    <option value="{{ $status }}" {{ old('status') == $status ? 'selected' : '' }}>{{ $status }}</option>
+                                @endforeach
+                            </select>
+                            @error('status')
+                                <span class="invalid-feedback">{{ $message }}</span>
+                            @enderror
+                        </div>
+                    </div>
                 </div>
-            @endif
 
-            <div class="form-group">
-                <label for="name">Nama Proyek</label>
-                <input type="text" name="name" class="form-control @error('name') is-invalid @enderror" value="{{ old('name') }}" required>
-                @error('name') <span class="text-danger">{{ $message }}</span> @enderror
-            </div>
-
-            <div class="form-group">
-                <label for="description">Deskripsi</label>
-                <textarea name="description" class="form-control @error('description') is-invalid @enderror" required>{{ old('description') }}</textarea>
-                @error('description') <span class="text-danger">{{ $message }}</span> @enderror
-            </div>
-
-            <div class="form-group">
-                <label for="status">Status</label>
-                <select name="status" class="form-control">
-                    <option value="Planning">Planning</option>
-                    <option value="Active">Active</option>
-                    <option value="Completed">Completed</option>
-                </select>
-            </div>
-
-            <div class="form-group">
-                <label for="priority">Prioritas</label>
-                <select name="priority" class="form-control">
-                    <option value="Low">Low</option>
-                    <option value="Medium">Medium</option>
-                    <option value="High">High</option>
-                    <option value="Urgent">Urgent</option>
-                </select>
-            </div>
+                <div class="card-footer">
+                    <button type="submit" class="btn btn-primary">Simpan Proyek</button>
+                    <a href="{{ route('projects.index') }}" class="btn btn-secondary float-right">Batal</a>
+                </div>
+            </form>
         </div>
-        <div class="card-footer">
-            <button type="submit" class="btn btn-primary">Simpan (Dummy)</button>
-            <a href="{{ route('projects.index') }}" class="btn btn-secondary">Batal</a>
-        </div>
-    </form>
+    </div>
 </div>
 @endsection

@@ -1,110 +1,80 @@
 @extends('layouts.app')
 
-@section('title', 'Detail Tugas')
+@section('title', $task->name)
 
 @section('content')
 <div class="row">
-    <div class="col-md-8">
-        <div class="card">
+    <div class="col-12">
+        <!-- Detail Task Card -->
+        <div class="card card-info">
             <div class="card-header">
-                <h3 class="card-title">{{ $dummyTask['title'] }}</h3>
+                <h3 class="card-title">{{ $task->name }}</h3>
+                <div class="card-tools">
+                    @if (in_array($userRole ?? 'anggota', ['admin', 'ketua_tim', 'anggota']))
+                        <a href="{{ route('tasks.edit', $task) }}" class="btn btn-sm btn-warning" title="Edit Task">
+                            <i class="fas fa-edit"></i>
+                        </a>
+                    @endif
+                    @if (in_array($userRole ?? 'anggota', ['admin', 'ketua_tim']))
+                        <form method="POST" action="{{ route('tasks.destroy', $task) }}" class="d-inline ml-2" onsubmit="return confirm('Yakin hapus task ini?');">
+                            @csrf
+                            @method('DELETE')
+                            <button type="submit" class="btn btn-sm btn-danger"><i class="fas fa-trash"></i></button>
+                        </form>
+                    @endif
+                    <a href="{{ route('tasks.index') }}" class="btn btn-sm btn-secondary ml-2">Kembali</a>
+                    <a href="{{ route('projects.show', $task->project) }}" class="btn btn-sm btn-primary ml-2">Lihat Project</a>
+                </div>
             </div>
             <div class="card-body">
-                <p><strong>Deskripsi:</strong> {{ $dummyTask['description'] }}</p>
-                <p><strong>Tenggat Waktu:</strong> {{ $dummyTask['deadline'] }}</p>
-                <p><strong>Status:</strong> <span class="badge badge-{{ $dummyTask['status'] == 'Completed' ? 'success' : ($dummyTask['status'] == 'In Progress' ? 'warning' : 'secondary') }}">{{ $dummyTask['status'] }}</span></p>
-                <p><strong>Prioritas:</strong> 
-                    <span class="badge badge-{{ $dummyTask['priority'] == 'Urgent' ? 'danger' : ($dummyTask['priority'] == 'High' ? 'warning' : ($dummyTask['priority'] == 'Medium' ? 'info' : 'success')) }}">
-                        {{ $dummyTask['priority'] }}
-                    </span>
-                </p>
+                <dl class="row">
+                    <dt class="col-sm-3">ID:</dt>
+                    <dd class="col-sm-9">{{ $task->id }}</dd>
 
-                <!-- Sub-tugas Dummy -->
-                <div class="mt-4">
-                    <h5>Sub-tugas:</h5>
-                    <ul class="list-group">
-                        @forelse($dummyTask['subtasks'] as $sub)
-                        <li class="list-group-item">{{ $sub }}</li>
-                        @empty
-                        <li class="list-group-item text-muted">Belum ada sub-tugas.</li>
-                        @endforelse
-                    </ul>
-                </div>
+                    <dt class="col-sm-3">Nama:</dt>
+                    <dd class="col-sm-9"><strong>{{ $task->name }}</strong></dd>
 
-                <!-- Lampiran File Dummy -->
-                <div class="mt-4">
-                    <h5>Lampiran File:</h5>
-                    <ul class="list-group">
-                        @forelse($dummyTask['files'] as $file)
-                        <li class="list-group-item d-flex justify-content-between align-items-center">
-                            <a href="{{ asset('storage/uploads/' . $file) }}" target="_blank" class="text-decoration-none">{{ $file }}</a>
-                            <span class="badge badge-secondary">Downloaded</span>
-                        </li>
-                        @empty
-                        <li class="list-group-item text-muted">Belum ada file lampiran.</li>
-                        @endforelse
-                    </ul>
-                </div>
-            </div>
-        </div>
-    </div>
+                    <dt class="col-sm-3">Deskripsi:</dt>
+                    <dd class="col-sm-9">{{ $task->description ?? 'Tidak ada deskripsi' }}</dd>
 
-    <div class="col-md-4">
-        <!-- Form Upload File & Sub-tugas (Hanya untuk Anggota/Ketua, validasi server) -->
-        @if (Auth::user()->role === 'anggota_tim' || Auth::user()->role === 'ketua_tim')
-        <div class="card card-success">
-            <div class="card-header">
-                <h3 class="card-title">Tambah Lampiran / Sub-tugas (Dummy)</h3>
-            </div>
-            <form method="POST" action="{{ route('tasks.upload', $dummyTask['id']) }}" enctype="multipart/form-data">
-                @csrf
-                <div class="card-body">
-                    @if ($errors->any())
-                        <div class="alert alert-danger">
-                            <ul class="mb-0">
-                                @foreach ($errors->all() as $error)
-                                    <li>{{ $error }}</li>
-                                @endforeach
-                            </ul>
-                        </div>
-                    @endif
+                    <dt class="col-sm-3">Status:</dt>
+                    <dd class="col-sm-9">
+                        <span class="badge badge-{{ $task->status === 'Completed' ? 'success' : ($task->status === 'In Progress' ? 'warning' : 'info') }}">
+                            {{ $task->status }}
+                        </span>
+                    </dd>
 
-                    <div class="form-group">
-                        <label for="file">Upload File (jpg, png, pdf - max 2MB)</label>
-                        <input type="file" name="file" class="form-control @error('file') is-invalid @enderror">
-                        @error('file') <span class="text-danger">{{ $message }}</span> @enderror
-                    </div>
+                    <dt class="col-sm-3">Due Date:</dt>
+                    <dd class="col-sm-9">{{ $task->due_date ? $task->due_date->format('d M Y') : 'Tidak ada' }}</dd>
 
-                    <div class="form-group">
-                        <label for="subtask">Tambah Sub-tugas</label>
-                        <input type="text" name="subtask" class="form-control @error('subtask') is-invalid @enderror" placeholder="Masukkan sub-tugas baru...">
-                        @error('subtask') <span class="text-danger">{{ $message }}</span> @enderror
-                    </div>
-                </div>
-                <div class="card-footer">
-                    <button type="submit" class="btn btn-success">Upload & Tambah (Dummy)</button>
-                </div>
-            </form>
-        </div>
-        @endif
+                    <dt class="col-sm-3">Project:</dt>
+                    <dd class="col-sm-9"><a href="{{ route('projects.show', $task->project) }}">{{ $task->project->name ?? 'Unknown' }}</a></dd>
 
-        <!-- Aksi -->
-        <div class="card">
-            <div class="card-body text-center">
-                <a href="{{ route('tasks.index') }}" class="btn btn-primary">Kembali ke Daftar</a>
-                @if (Auth::user()->role === 'admin')
-                <a href="{{ route('tasks.edit', $dummyTask['id']) }}" class="btn btn-warning">Edit Tugas</a>
-                <form method="POST" action="{{ route('tasks.destroy', $dummyTask['id']) }}" style="display:inline;" onsubmit="return confirm('Dummy: Hapus tugas?')">
-                    @csrf @method('DELETE')
-                    <button type="submit" class="btn btn-danger">Hapus</button>
-                </form>
-                @endif
+                    <dt class="col-sm-3">Ditugaskan Kepada:</dt>
+                    <dd class="col-sm-9">{{ $task->assignee->name ?? 'Tidak ditugaskan' }}</dd>
+
+                    <dt class="col-sm-3">Dibuat Pada:</dt>
+                    <dd class="col-sm-9">{{ $task->created_at->format('d M Y H:i') }}</dd>
+
+                    <dt class="col-sm-3">Diupdate Pada:</dt>
+                    <dd class="col-sm-9">{{ $task->updated_at->format('d M Y H:i') }}</dd>
+                </dl>
             </div>
         </div>
     </div>
 </div>
 
+<!-- Flash Messages -->
 @if (session('success'))
-    <div class="alert alert-success mt-3">{{ session('success') }}</div>
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        {{ session('success') }}
+        <button type="button" class="close" data-dismiss="alert">&times;</button>
+    </div>
+@endif
+@if (session('error'))
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        {{ session('error') }}
+        <button type="button" class="close" data-dismiss="alert">&times;</button>
+    </div>
 @endif
 @endsection

@@ -1,47 +1,46 @@
 @extends('layouts.app')
 
-@section('title', 'Projects')
+@section('title', 'Daftar Proyek')
 
 @section('content')
-<div class="container-fluid">
     <div class="row">
         <div class="col-12">
-            <div class="card">
+            <div class="card card-primary">
                 <div class="card-header">
                     <h3 class="card-title">Daftar Proyek</h3>
-                    @if (in_array(Auth::user()->role, ['admin', 'ketua_tim']))
-                        <div class="card-tools">
-                            <a href="{{ route('projects.create') }}" class="btn btn-sm btn-primary">
-                                <i class="fas fa-plus"></i> Tambah Proyek
-                            </a>
-                        </div>
+                    {{-- <div class="card-tools">
+                    @if (in_array($userRole ?? 'anggota', ['admin', 'ketua_tim']))
+                        <a href="{{ route('projects.create') }}" class="btn btn-sm btn-success" title="Tambah Proyek Baru">
+                            <i class="fas fa-plus"></i> Tambah
+                        </a>
                     @endif
+                </div> --}}
+                    <div class="card-tools">
+                        @if ($userRole === 'admin')
+                            <a href="{{ route('projects.create') }}" class="btn btn-sm btn-success" title="Tambah Proyek Baru">
+                                <i class="fas fa-plus"></i> Tambah
+                            </a>
+                        @endif
+                    </div>
                 </div>
                 <div class="card-body">
-                    @if (session('status'))
-                        <div class="alert alert-success alert-dismissible fade show" role="alert">
-                            {{ session('status') }}
-                            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                                <span aria-hidden="true">&times;</span>
-                            </button>
+                    <!-- Search Form -->
+                    <form method="GET" action="{{ route('projects.index') }}" class="mb-3">
+                        <div class="input-group">
+                            <input type="text" name="search" class="form-control"
+                                placeholder="Cari proyek berdasarkan nama..." value="{{ $search ?? '' }}">
+                            <div class="input-group-append">
+                                <button class="btn btn-primary" type="submit"><i class="fas fa-search"></i></button>
+                                @if ($search)
+                                    <a href="{{ route('projects.index') }}" class="btn btn-secondary"><i
+                                            class="fas fa-times"></i></a>
+                                @endif
+                            </div>
                         </div>
-                    @endif
-                    @if (session('error'))
-                        <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                            {{ session('error') }}
-                            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                                <span aria-hidden="true">&times;</span>
-                            </button>
-                        </div>
-                    @endif
+                    </form>
 
-                    @if (empty($projects) || count($projects) === 0)
-                        <div class="alert alert-info">Belum ada proyek. 
-                            @if (in_array(Auth::user()->role, ['admin', 'ketua_tim']))
-                                <a href="{{ route('projects.create') }}">Buat yang pertama!</a>
-                            @endif
-                        </div>
-                    @else
+                    <!-- Table -->
+                    @if ($projects->count() > 0)
                         <div class="table-responsive">
                             <table class="table table-bordered table-striped">
                                 <thead class="thead-dark">
@@ -50,36 +49,56 @@
                                         <th>Nama Proyek</th>
                                         <th>Deskripsi</th>
                                         <th>Status</th>
-                                        <th>Tanggal Dibuat</th>
+                                        <th>Dibuat Oleh</th>
+                                        <th>Jumlah Tasks</th>
                                         <th>Aksi</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    @foreach($projects as $project)
+                                    @foreach ($projects as $project)
                                         <tr>
-                                            <td>{{ $project['id'] ?? $loop->iteration }}</td>
-                                            <td><strong>{{ $project['name'] }}</strong></td>
-                                            <td>{{ Str::limit($project['description'] ?? '', 50) }}</td>
+                                            <td>{{ $project->id }}</td>
+                                            <td><strong>{{ $project->name }}</strong></td>
+                                            <td>{{ Str::limit($project->description, 50) }}</td>
                                             <td>
-                                                <span class="badge badge-{{ $project['status'] === 'Completed' ? 'success' : ($project['status'] === 'In Progress' ? 'warning' : ($project['status'] === 'Planning' ? 'info' : 'secondary')) }}">
-                                                    {{ $project['status'] ?? 'N/A' }}
+                                                <span
+                                                    class="badge badge-{{ $project->status === 'Completed' ? 'success' : ($project->status === 'In Progress' ? 'warning' : ($project->status === 'Planning' ? 'info' : 'secondary')) }}">
+                                                    {{ $project->status }}
                                                 </span>
                                             </td>
-                                            <td>{{ isset($project['created_at']) ? $project['created_at']->format('d M Y') : 'N/A' }}</td>
+                                            <td>{{ $project->creator->name ?? 'Unknown' }}</td>
                                             <td>
-                                                <a href="{{ route('projects.show', $project['id']) }}" class="btn btn-sm btn-info" title="Lihat Detail">
-                                                    <i class="fas fa-eye"></i>
-                                                </a>
-                                                @if (in_array(Auth::user()->role, ['admin', 'ketua_tim']))
-                                                    <a href="{{ route('projects.edit', $project['id']) }}" class="btn btn-sm btn-warning" title="Edit">
-                                                        <i class="fas fa-edit"></i>
-                                                    </a>
-                                                    <form method="POST" action="{{ route('projects.destroy', $project['id']) }}" class="d-inline" style="margin-left: 5px;" onsubmit="return confirm('Yakin hapus proyek ini?')">
+                                                <span class="badge badge-info">{{ $project->tasks->count() }}</span>
+                                            </td>
+                                            {{-- <td>
+                                                <a href="{{ route('projects.show', $project) }}"
+                                                    class="btn btn-sm btn-info"><i class="fas fa-eye"></i></a>
+                                                @if (in_array($userRole ?? 'anggota', ['admin', 'ketua_tim']))
+                                                    <a href="{{ route('projects.edit', $project) }}"
+                                                        class="btn btn-sm btn-warning ml-1"><i class="fas fa-edit"></i></a>
+                                                    <form method="POST" action="{{ route('projects.destroy', $project) }}"
+                                                        class="d-inline"
+                                                        onsubmit="return confirm('Yakin hapus proyek ini? Tasks terkait akan ikut terhapus.');">
                                                         @csrf
                                                         @method('DELETE')
-                                                        <button type="submit" class="btn btn-sm btn-danger" title="Hapus">
-                                                            <i class="fas fa-trash"></i>
-                                                        </button>
+                                                        <button type="submit" class="btn btn-sm btn-danger ml-1"><i
+                                                                class="fas fa-trash"></i></button>
+                                                    </form>
+                                                @endif
+                                            </td> --}}
+                                            <td>
+                                                <a href="{{ route('projects.show', $project) }}"
+                                                    class="btn btn-sm btn-info"><i class="fas fa-eye"></i></a>
+                                                @if (in_array($userRole, ['admin', 'ketua_tim']))
+                                                    <a href="{{ route('projects.edit', $project) }}"
+                                                        class="btn btn-sm btn-warning ml-1"><i class="fas fa-edit"></i></a>
+                                                @endif
+                                                @if ($userRole === 'admin')
+                                                    <form method="POST" action="{{ route('projects.destroy', $project) }}"
+                                                        class="d-inline ml-1" onsubmit="return confirm('Yakin hapus?');">
+                                                        @csrf @method('DELETE')
+                                                        <button type="submit" class="btn btn-sm btn-danger"><i
+                                                                class="fas fa-trash"></i></button>
                                                     </form>
                                                 @endif
                                             </td>
@@ -88,22 +107,35 @@
                                 </tbody>
                             </table>
                         </div>
-                        <div class="d-flex justify-content-between">
-                            <span class="text-muted">Total: {{ count($projects) }} proyek</span>
+
+                        <!-- Pagination -->
+                        <div class="d-flex justify-content-center mt-3">
+                            {{ $projects->appends(['search' => $search])->links() }}
+                        </div>
+                    @else
+                        <div class="alert alert-info text-center">Belum ada proyek yang sesuai kriteria. @if (in_array($userRole ?? 'anggota', ['admin', 'ketua_tim']))
+                                @if ($userRole === 'admin')
+                                    <a href="{{ route('projects.create') }}">Buat sekarang!</a>
+                                @endif
+                            @endif
                         </div>
                     @endif
                 </div>
             </div>
         </div>
     </div>
-</div>
-@endsection
 
-@push('scripts')
-<script>
-    // Opsional: Auto-dismiss alert setelah 5 detik
-    setTimeout(function() {
-        $('.alert').fadeOut('slow');
-    }, 5000);
-</script>
-@endpush
+    <!-- Flash Messages -->
+    @if (session('success'))
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            {{ session('success') }}
+            <button type="button" class="close" data-dismiss="alert">&times;</button>
+        </div>
+    @endif
+    @if (session('error'))
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            {{ session('error') }}
+            <button type="button" class="close" data-dismiss="alert">&times;</button>
+        </div>
+    @endif
+@endsection

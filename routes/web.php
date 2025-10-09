@@ -62,6 +62,10 @@
         Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
         Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
         Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+        // Profile Routes
+        Route::get('/profile', [App\Http\Controllers\ProfileController::class, 'show'])->name('profile.show');
+        Route::put('/profile', [App\Http\Controllers\ProfileController::class, 'update'])->name('profile.update');
+        Route::put('/profile/password', [App\Http\Controllers\ProfileController::class, 'updatePassword'])->name('profile.password');
     });
 
     // Guest routes

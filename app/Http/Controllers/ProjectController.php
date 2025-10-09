@@ -2,116 +2,154 @@
 
 namespace App\Http\Controllers;
 
-    use Illuminate\Http\Request;
-    use Illuminate\Support\Facades\Auth;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use App\Models\Project;
+use App\Models\User;
+use Illuminate\Validation\Rule;
 
-    class ProjectController extends Controller
+class ProjectController extends Controller
+{
+    public function index(Request $request)
     {
-        /**
-         * Display a listing of the resource.
-         */
-        public function index()
-        {
-            // Dummy data: Gunakan $projects (bukan $dummyProjects)
-            $projects = [
-                ['id' => 1, 'name' => 'Proyek Web Development', 'description' => 'Bangun website perusahaan', 'status' => 'In Progress', 'created_at' => now()],
-                ['id' => 2, 'name' => 'Proyek Mobile App', 'description' => 'Aplikasi Android/iOS', 'status' => 'Completed', 'created_at' => now()->subDays(5)],
-                ['id' => 3, 'name' => 'Proyek Database Optimization', 'description' => 'Optimasi performa DB', 'status' => 'Planning', 'created_at' => now()],
-            ];
+        $user = Auth::user();
+        $userRole = $user->role ?? 'anggota';
+        $search = $request->query('search');
 
-            return view('projects.index', compact('projects'));  // Pass $projects ke view
+        // Role-based query base
+        $query = Project::with(['creator', 'tasks']);  // Load relations
+
+        if ($userRole === 'admin' || $userRole === 'ketua_tim') {
+            // Admin & Ketua: Lihat semua projects (dibuat admin, untuk tim)
+            $projects = $query;
+        } else {
+            // Anggota: Hanya projects dengan tasks assigned to them
+            $projects = $query->whereHas('tasks', function ($q) use ($user) {
+                $q->where('assigned_to', $user->id);
+            });
         }
 
-        /**
-         * Show the form for creating a new resource.
-         */
-        public function create()
-        {
-            // Role check: Block anggota (meski route di read-group, controller handle)
-            if (Auth::user()->role === 'anggota_tim') {
-                return redirect()->route('projects.index')->with('error', 'Hanya admin/ketua tim yang bisa membuat proyek.');
-            }
-            return view('projects.create');
+        // Search by name
+        if ($search) {
+            $projects = $projects->where('name', 'like', '%' . $search . '%');
         }
 
-        /**
-         * Store a newly created resource in storage.
-         */
-        public function store(Request $request)
-        {
-            $request->validate([
-                'name' => 'required|string|max:255',
-                'description' => 'required|string',
-                'status' => 'required|in:Planning,In Progress,Completed,On Hold',
-            ]);
+        $projects = $projects->latest()->paginate(10);
 
-            // Real: Project::create($request->all() + ['user_id' => Auth::id()]);
-            // Dummy: Simpan ke session atau log
-            session()->flash('status', 'Proyek "' . $request->name . '" berhasil dibuat! (Dummy)');
-
-            return redirect()->route('projects.index');
-        }
-
-        /**
-         * Display the specified resource.
-         */
-        public function show($id)  // Dummy ID, bukan model binding jika model belum ada
-        {
-            // Dummy project berdasarkan ID
-            $project = collect([
-                ['id' => 1, 'name' => 'Proyek Web Development', 'description' => 'Bangun website perusahaan', 'status' => 'In Progress'],
-                ['id' => 2, 'name' => 'Proyek Mobile App', 'description' => 'Aplikasi Android/iOS', 'status' => 'Completed'],
-                ['id' => 3, 'name' => 'Proyek Database Optimization', 'description' => 'Optimasi performa DB', 'status' => 'Planning'],
-            ])->firstWhere('id', $id);
-
-            if (!$project) {
-                abort(404, 'Proyek tidak ditemukan.');
-            }
-
-            return view('projects.show', compact('project'));
-        }
-
-        /**
-         * Show the form for editing the specified resource.
-         */
-        public function edit($id)
-        {
-            $project = collect([
-                ['id' => 1, 'name' => 'Proyek Web Development', 'description' => 'Bangun website perusahaan', 'status' => 'In Progress'],
-                ['id' => 2, 'name' => 'Proyek Mobile App', 'description' => 'Aplikasi Android/iOS', 'status' => 'Completed'],
-            ])->firstWhere('id', $id);
-
-            if (!$project) {
-                abort(404);
-            }
-
-            return view('projects.edit', compact('project'));
-        }
-
-        /**
-         * Update the specified resource in storage.
-         */
-        public function update(Request $request, $id)
-        {
-            $request->validate([
-                'name' => 'required|string|max:255',
-                'description' => 'required|string',
-            ]);
-
-            // Dummy update
-            session()->flash('status', 'Proyek ID ' . $id . ' berhasil diupdate! (Dummy)');
-
-            return redirect()->route('projects.index');
-        }
-
-        /**
-         * Remove the specified resource from storage.
-         */
-        public function destroy($id)
-        {
-            // Dummy delete
-            session()->flash('status', 'Proyek ID ' . $id . ' berhasil dihapus! (Dummy)');
-
-            return redirect()->route('projects.index');
-        }
+        return view('projects.index', compact('projects', 'userRole', 'search'));
     }
+
+    public function create()
+    {
+        $user = Auth::user();
+        $userRole = $user->role ?? 'anggota';
+
+        // Hanya admin bisa create
+        if ($userRole !== 'admin') {
+            abort(403, 'Akses ditolak. Hanya admin yang bisa membuat proyek.');
+        }
+
+        $statuses = ['Planning', 'In Progress', 'Completed', 'On Hold'];
+
+        return view('projects.create', compact('statuses'));
+    }
+
+    public function store(Request $request)
+    {
+        $user = Auth::user();
+        $userRole = $user->role ?? 'anggota';
+
+        // Hanya admin
+        if ($userRole !== 'admin') {
+            return redirect()->route('projects.index')->with('error', 'Akses ditolak.');
+        }
+
+        // Validation
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'description' => 'nullable|string|max:500',
+            'status' => ['required', Rule::in(['Planning', 'In Progress', 'Completed', 'On Hold'])],
+        ]);
+
+        Project::create([
+            'name' => $request->name,
+            'description' => $request->description,
+            'status' => $request->status,
+            'created_by' => $user->id,
+        ]);
+
+        return redirect()->route('projects.index')->with('success', 'Proyek berhasil dibuat!');
+    }
+
+    public function show(Project $project)
+    {
+        $user = Auth::user();
+        $userRole = $user->role ?? 'anggota';
+
+        // Admin & Ketua: Bisa lihat semua
+        // Anggota: Hanya jika ada tasks assigned
+        if ($userRole === 'anggota' && !$project->tasks()->where('assigned_to', $user->id)->exists()) {
+            abort(403, 'Anda tidak punya akses ke proyek ini.');
+        }
+
+        $project->load(['creator', 'tasks.assignee']);
+
+        return view('projects.show', compact('project', 'userRole'));
+    }
+
+    public function edit(Project $project)
+    {
+        $user = Auth::user();
+        $userRole = $user->role ?? 'anggota';
+
+        // Admin & Ketua bisa edit semua projects
+        if (!in_array($userRole, ['admin', 'ketua_tim'])) {
+            abort(403, 'Akses ditolak.');
+        }
+
+        $statuses = ['Planning', 'In Progress', 'Completed', 'On Hold'];
+
+        return view('projects.edit', compact('project', 'statuses'));
+    }
+
+    public function update(Request $request, Project $project)
+    {
+        $user = Auth::user();
+        $userRole = $user->role ?? 'anggota';
+
+        // Admin & Ketua
+        if (!in_array($userRole, ['admin', 'ketua_tim'])) {
+            return redirect()->route('projects.index')->with('error', 'Akses ditolak.');
+        }
+
+        // Validation
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'description' => 'nullable|string|max:500',
+            'status' => ['required', Rule::in(['Planning', 'In Progress', 'Completed', 'On Hold'])],
+        ]);
+
+        $project->update([
+            'name' => $request->name,
+            'description' => $request->description,
+            'status' => $request->status,
+        ]);
+
+        return redirect()->route('projects.index')->with('success', 'Proyek berhasil diupdate!');
+    }
+
+    public function destroy(Project $project)
+    {
+        $user = Auth::user();
+        $userRole = $user->role ?? 'anggota';
+
+        // Hanya admin
+        if ($userRole !== 'admin') {
+            return redirect()->route('projects.index')->with('error', 'Akses ditolak.');
+        }
+
+        $project->delete();  // Cascade tasks
+
+        return redirect()->route('projects.index')->with('success', 'Proyek berhasil dihapus!');
+    }
+}
