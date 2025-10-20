@@ -9,7 +9,19 @@ class Task extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['name', 'description', 'status', 'due_date', 'project_id', 'assigned_to'];
+    protected $fillable = [
+        'name',
+        'description',
+        'status',
+        'due_date',
+        'deadline',
+        'priority',
+        'progress',
+        'project_id',
+        'assigned_to',
+        'submission_file',
+        'completed_at',
+    ];
 
     protected $casts = [
         'status' => 'string',
@@ -24,5 +36,17 @@ class Task extends Model
     public function assignee()
     {
         return $this->belongsTo(User::class, 'assigned_to');
+    }
+
+    public function getDeadlineClassAttribute()
+    {
+        if (!$this->deadline) return 'secondary';
+        $now = now();
+        return $this->deadline->lt($now) ? 'danger' : 'success';
+    }
+
+    public function scopeByStatus($query, $status)
+    {
+        return $query->where('status', $status);
     }
 }

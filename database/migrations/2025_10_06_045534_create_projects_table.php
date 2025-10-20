@@ -12,7 +12,7 @@
                 $table->string('name');
                 $table->text('description')->nullable();
                 $table->enum('status', ['Planning', 'In Progress', 'Completed', 'On Hold'])->default('Planning');
-                $table->unsignedBigInteger('created_by')->nullable();  // User ID yang buat
+                $table->unsignedBigInteger('created_by')->nullable();
                 $table->timestamps();
 
                 $table->foreign('created_by')->references('id')->on('users')->onDelete('set null');

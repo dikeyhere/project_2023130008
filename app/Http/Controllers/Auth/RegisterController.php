@@ -17,15 +17,14 @@ namespace App\Http\Requests;
                 'name' => 'required|string|max:255',
                 'email' => 'required|string|email|max:255|unique:users',
                 'password' => 'required|string|min:8|confirmed',
-                'role' => 'required|in:admin,ketua_tim,anggota_tim',  // Validasi role
+                'role' => 'required|in:admin,ketua_tim,anggota_tim',
             ];
         }
 
-        public function messages()  // Opsional: Custom message error
+        public function messages()
         {
             return [
                 'role.required' => 'Role harus dipilih.',
-                'role.in' => 'Role tidak valid. Pilih Admin, Ketua Tim, atau Anggota Tim.',
             ];
         }
     }

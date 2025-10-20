@@ -10,9 +10,8 @@ class DatabaseSeeder extends Seeder
 {
     public function run()
     {
-        // Buat/update users sample (firstOrCreate: Hindari duplicate email)
         $admin = User::firstOrCreate(
-            ['email' => 'admin@example.com'],  // Unique key: Email
+            ['email' => 'admin@example.com'], 
             [
                 'name' => 'Admin User',
                 'password' => bcrypt('password'),
@@ -38,10 +37,6 @@ class DatabaseSeeder extends Seeder
             ]
         );
 
-        // Hapus data lama jika ada (opsional: Untuk reset clean, tapi skip jika ingin keep existing users)
-        // Project::truncate(); Task::truncate();  // Uncomment jika ingin reset projects/tasks
-
-        // Buat projects (5 sample, reference user IDs)
         $projects = [
             ['name' => 'Proyek Web App', 'description' => 'Bangun aplikasi web', 'status' => 'In Progress', 'created_by' => $admin->id],
             ['name' => 'Proyek Mobile', 'description' => 'Aplikasi mobile', 'status' => 'Planning', 'created_by' => $ketua->id],
@@ -51,13 +46,12 @@ class DatabaseSeeder extends Seeder
         ];
 
         foreach ($projects as $data) {
-            Project::firstOrCreate(  // Hindari duplicate name jika run ulang
+            Project::firstOrCreate(
                 ['name' => $data['name']],
                 $data
             );
         }
 
-        // Buat tasks (10 sample, reference project & user IDs)
         $tasks = [
             ['name' => 'Desain Database', 'status' => 'Completed', 'due_date' => '2024-01-15', 'project_id' => 1, 'assigned_to' => $anggota->id],
             ['name' => 'Implementasi API', 'status' => 'In Progress', 'due_date' => '2024-02-01', 'project_id' => 1, 'assigned_to' => $ketua->id],
@@ -72,13 +66,12 @@ class DatabaseSeeder extends Seeder
         ];
 
         foreach ($tasks as $data) {
-            Task::firstOrCreate(  // Hindari duplicate name
+            Task::firstOrCreate(
                 ['name' => $data['name']],
                 $data
             );
         }
 
-        // Output success (opsional, untuk log)
         echo "Seeding completed: " . User::count() . " users, " . Project::count() . " projects, " . Task::count() . " tasks.\n";
     }
 }

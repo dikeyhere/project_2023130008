@@ -14,7 +14,7 @@ class TaskUploadRequest extends FormRequest
     public function rules()
     {
         return [
-            'file' => 'required|file|mimes:jpg,png,pdf|max:2048',  // Max 2MB
+            'file' => 'required|file|mimes:jpg,png,pdf|max:2048',
             'subtask' => 'nullable|string|max:255',
         ];
     }

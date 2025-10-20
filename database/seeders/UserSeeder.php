@@ -15,6 +15,7 @@ class UserSeeder extends Seeder
             'email' => 'admin@example.com',
             'password' => Hash::make('password'),
             'role' => 'admin',
+            'avatar' => 'images/default-avatar.png',
         ]);
 
         User::create([
@@ -22,6 +23,7 @@ class UserSeeder extends Seeder
             'email' => 'ketua@example.com',
             'password' => Hash::make('password'),
             'role' => 'ketua_tim',
+            'avatar' => 'images/default-avatar.png',
         ]);
 
         User::create([
@@ -29,6 +31,7 @@ class UserSeeder extends Seeder
             'email' => 'anggota@example.com',
             'password' => Hash::make('password'),
             'role' => 'anggota_tim',
+            'avatar' => 'images/default-avatar.png',
         ]);
     }
 }

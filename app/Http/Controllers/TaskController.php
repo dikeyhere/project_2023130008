@@ -14,174 +14,212 @@ class TaskController extends Controller
     public function index(Request $request)
     {
         $user = Auth::user();
-        $userRole = $user->role ?? 'anggota';
+        $userRole = $user->role ?? 'anggota_tim';
+
         $search = $request->query('search');
-        $projectId = $request->query('project_id');  // Filter by project (dari show project)
 
-        // Base query with relations
-        $query = Task::with(['project', 'assignee', 'project.creator']);
+        $query = Project::query()->with(['tasks.assignee']);
 
-        if ($userRole === 'admin' || $userRole === 'ketua_tim') {
-            // Admin & Ketua: Semua tasks (atau filter by project)
-            $tasks = $query;
-            if ($projectId) {
-                $tasks = $tasks->where('project_id', $projectId);
-            }
+        if ($userRole === 'admin') {
+        } elseif ($userRole === 'ketua_tim') {
+            $query->where('team_leader_id', $user->id);
+        } elseif ($userRole === 'anggota_tim') {
+            $query->whereHas('tasks', function ($q) use ($user) {
+                $q->where('assigned_to', $user->id);
+            });
         } else {
-            // Anggota: Hanya own tasks
-            $tasks = $query->where('assigned_to', $user->id);
-            if ($projectId) {
-                $tasks = $tasks->where('project_id', $projectId);
-            }
+            abort(403, 'Anda tidak memiliki akses ke proyek.');
         }
 
-        // Search by name
         if ($search) {
-            $tasks = $tasks->where('name', 'like', '%' . $search . '%');
+            $query->where('name', 'like', "%{$search}%");
         }
 
-        $tasks = $tasks->latest()->paginate(10);
+        $projects = $query->get();
 
-        // Get projects for filter (admin/ketua only)
-        $projects = ($userRole === 'admin' || $userRole === 'ketua_tim') ? Project::all() : [];
-
-        return view('tasks.index', compact('tasks', 'userRole', 'search', 'projectId', 'projects'));
+        return view('projects.index', compact(
+            'projects',
+            'search',
+            'userRole'
+        ));
     }
 
-    public function create()
+    public function create(Project $project)
     {
         $user = Auth::user();
-        $userRole = $user->role ?? 'anggota';
+        $userRole = $user->role ?? 'anggota_tim';
 
-        // Hanya admin & ketua
         if (!in_array($userRole, ['admin', 'ketua_tim'])) {
             abort(403, 'Akses ditolak.');
         }
 
-        $projects = Project::all();  // Pilih project
-        $users = User::whereIn('role', ['ketua_tim', 'anggota'])->get();  // Assign ke ketua/anggota
-        $statuses = ['Pending', 'In Progress', 'Completed'];
+        $users = \App\Models\User::whereIn('role', ['ketua_tim', 'anggota_tim'])->get();
 
-        return view('tasks.create', compact('projects', 'users', 'statuses'));
+        $statuses = ['Pending', 'In Progress', 'Completed'];
+        $priorities = ['low', 'medium', 'high'];
+
+        return view('tasks.create', compact('project', 'users', 'statuses', 'priorities', 'userRole'));
     }
 
-    public function store(Request $request)
+    public function store(Request $request, Project $project)
     {
         $user = Auth::user();
-        $userRole = $user->role ?? 'anggota';
+        $userRole = $user->role ?? 'anggota_tim';
 
-        // Hanya admin & ketua
         if (!in_array($userRole, ['admin', 'ketua_tim'])) {
-            return redirect()->route('tasks.index')->with('error', 'Akses ditolak.');
+            return redirect()->back()->with('error', 'Akses ditolak.');
         }
 
-        // Validation
         $request->validate([
             'name' => 'required|string|max:255',
             'description' => 'nullable|string|max:500',
             'status' => ['required', Rule::in(['Pending', 'In Progress', 'Completed'])],
-            'due_date' => 'nullable|date|after:now',
-            'project_id' => 'required|exists:projects,id',
-            'assigned_to' => 'nullable|exists:users,id',  // Opsional jika tidak assign
+            'due_date' => 'nullable|date|after:now|before_or_equal:' . ($project->deadline ?? now()->addYears(1)),
+            'assigned_to' => ['nullable', 'exists:users,id'],
+            'priority' => 'required|string',
         ]);
 
-        Task::create([
+        $project->tasks()->create([
             'name' => $request->name,
             'description' => $request->description,
             'status' => $request->status,
             'due_date' => $request->due_date,
-            'project_id' => $request->project_id,
             'assigned_to' => $request->assigned_to,
+            'priority' => $request->priority,
         ]);
 
-        return redirect()->route('tasks.index')->with('success', 'Task berhasil dibuat!');
+        return redirect()->route('projects.show', $project)->with('success', 'Task berhasil dibuat.');
     }
 
-    public function show(Task $task)
+    public function show(Project $project, Task $task)
     {
         $user = Auth::user();
-        $userRole = $user->role ?? 'anggota';
+        $userRole = $user->role ?? 'anggota_tim';
 
-        // Admin & Ketua: Semua
-        // Anggota: Hanya own
-        if ($userRole === 'anggota' && $task->assigned_to != $user->id) {
-            abort(403, 'Anda tidak punya akses ke task ini.');
+        if ($task->project_id !== $project->id) {
+            abort(404, 'Tugas tidak ditemukan dalam proyek ini.');
         }
 
         $task->load(['project', 'assignee', 'project.creator']);
 
-        return view('tasks.show', compact('task', 'userRole'));
+        return view('tasks.show', compact('project', 'task', 'userRole'));
     }
 
-    public function edit(Task $task)
+    public function edit(Project $project, Task $task)
     {
         $user = Auth::user();
-        $userRole = $user->role ?? 'anggota';
+        $userRole = $user->role ?? 'anggota_tim';
 
-        // Admin & Ketua full; Anggota hanya own
-        if ($userRole === 'anggota' && $task->assigned_to != $user->id) {
+        if ($userRole === 'anggota_tim' && $task->assigned_to != $user->id) {
             abort(403, 'Akses ditolak.');
         }
 
-        $projects = ($userRole === 'admin' || $userRole === 'ketua_tim') ? Project::all() : [];  // Anggota no project select
-        $users = ($userRole === 'admin' || $userRole === 'ketua_tim') ? User::whereIn('role', ['ketua_tim', 'anggota'])->get() : [];  // Anggota no user select
-        $statuses = ['Pending', 'In Progress', 'Completed'];
+        $users = User::whereIn('role', ['ketua_tim', 'anggota_tim'])->get();
 
-        return view('tasks.edit', compact('task', 'projects', 'users', 'statuses', 'userRole'));
+        $statuses = ['Pending', 'In Progress', 'Completed'];
+        $priorities = ['low', 'medium', 'high'];
+
+        return view('tasks.edit', compact('project', 'task', 'users', 'statuses', 'priorities', 'userRole'));
     }
 
-    public function update(Request $request, Task $task)
+    public function update(Request $request, Project $project, Task $task)
     {
         $user = Auth::user();
-        $userRole = $user->role ?? 'anggota';
+        $userRole = $user->role ?? 'anggota_tim';
 
-        // Sama seperti edit
-        if ($userRole === 'anggota' && $task->assigned_to != $user->id) {
-            return redirect()->route('tasks.index')->with('error', 'Akses ditolak.');
+        if ($userRole === 'anggota_tim' && $task->assigned_to != $user->id) {
+            return redirect()->back()->with('error', 'Akses ditolak.');
         }
 
-        // Validation (project_id & assigned_to optional untuk update, agar anggota bisa ubah status saja)
         $rules = [
             'name' => 'required|string|max:255',
             'description' => 'nullable|string|max:500',
             'status' => ['required', Rule::in(['Pending', 'In Progress', 'Completed'])],
             'due_date' => 'nullable|date|after:now',
+            'assigned_to' => ['nullable', 'exists:users,id'],
+            'priority' => 'required|string',
         ];
-        if (in_array($userRole, ['admin', 'ketua_tim'])) {
-            $rules['project_id'] = 'required|exists:projects,id';
-            $rules['assigned_to'] = 'nullable|exists:users,id';
-        }
 
         $request->validate($rules);
 
-        $updateData = [
+        $task->update([
             'name' => $request->name,
             'description' => $request->description,
             'status' => $request->status,
             'due_date' => $request->due_date,
-        ];
-        if (in_array($userRole, ['admin', 'ketua_tim'])) {
-            $updateData['project_id'] = $request->project_id;
-            $updateData['assigned_to'] = $request->assigned_to;
-        }
+            'assigned_to' => in_array($userRole, ['admin', 'ketua_tim']) ? $request->assigned_to : $task->assigned_to,
+            'priority' => $request->priority,
+        ]);
 
-        $task->update($updateData);
-
-        return redirect()->route('tasks.index')->with('success', 'Task berhasil diupdate!');
+        return redirect()->route('projects.show', $task->project)
+            ->with('success', 'Task berhasil diupdate.');
     }
 
-    public function destroy(Task $task)
+    public function destroy(Project $project, Task $task)
     {
         $user = Auth::user();
-        $userRole = $user->role ?? 'anggota';
+        $userRole = $user->role ?? 'anggota_tim';
 
-        // Hanya admin & ketua; Anggota no delete
         if (!in_array($userRole, ['admin', 'ketua_tim'])) {
-            return redirect()->route('tasks.index')->with('error', 'Akses ditolak.');
+            return redirect()->back()->with('error', 'Akses ditolak.');
         }
 
         $task->delete();
 
-        return redirect()->route('tasks.index')->with('success', 'Task berhasil dihapus!');
+        return redirect()->route('projects.tasks.index', $project)
+            ->with('success', 'Task berhasil dihapus.');
+    }
+
+    public function upload(Request $request, Project $project, Task $task)
+    {
+        if (auth()->id() !== $task->assigned_to) {
+            abort(403, 'Anda tidak memiliki izin untuk mengunggah tugas ini.');
+        }
+
+        $request->validate([
+            'submission_file' => 'required|file|max:10240',
+        ]);
+
+        if ($request->hasFile('submission_file')) {
+            $file = $request->file('submission_file');
+            $filename = time() . '_' . $file->getClientOriginalName();
+            $path = $file->storeAs('submissions', $filename, 'public');
+
+            $task->update([
+                'submission_file' => $path,
+                'completed_at' => now(),
+                'status' => 'Completed',
+            ]);
+        }
+
+        return redirect()
+            ->route('projects.tasks.show', [$project, $task])
+            ->with('success', 'Hasil tugas berhasil diunggah dan ditandai sebagai selesai.');
+    }
+
+    public function globalIndex(Request $request)
+    {
+        $user = auth()->user();
+        $userRole = $user->role ?? 'anggota_tim';
+
+        $query = \App\Models\Task::with('project', 'assignee');
+
+        if ($userRole === 'ketua_tim') {
+            $query->whereHas('project', function ($q) use ($user) {
+                $q->where('team_leader_id', $user->id);
+            });
+        } elseif ($userRole === 'anggota_tim') {
+            $query->where('assigned_to', $user->id);
+        }
+
+        $search = $request->input('search');
+
+        if ($search) {
+            $query->where('name', 'like', "%{$search}%");
+        }
+
+        $tasks = $query->orderBy('due_date', 'asc')->paginate(10);
+
+        return view('tasks.index', compact('tasks', 'search', 'userRole'));
     }
 }

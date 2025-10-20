@@ -5,49 +5,40 @@
 @section('content')
     <div class="row">
         <div class="col-12">
-            <!-- Detail Project Card -->
+
             <div class="card card-info">
-                <div class="card-header">
-                    <h3 class="card-title">{{ $project->name }}</h3>
-                    {{-- <div class="card-tools">
-                    @if (in_array($userRole ?? 'anggota', ['admin', 'ketua_tim']))
-                        <a href="{{ route('projects.edit', $project) }}" class="btn btn-sm btn-warning" title="Edit Proyek">
-                            <i class="fas fa-edit"></i>
-                        </a>
-                        <form method="POST" action="{{ route('projects.destroy', $project) }}" class="d-inline ml-2" onsubmit="return confirm('Yakin hapus proyek ini? Tasks terkait akan ikut terhapus.');">
-                            @csrf
-                            @method('DELETE')
-                            <button type="submit" class="btn btn-sm btn-danger"><i class="fas fa-trash"></i></button>
-                        </form>
-                    @endif
-                    <a href="{{ route('projects.index') }}" class="btn btn-sm btn-secondary ml-2">Kembali</a>
-                </div> --}}
+                <div class="card-header" style="vertical-align:middle; text-align:center">
+                    <h3 class="card-title pt-1">Detail Proyek</h3>
                     <div class="card-tools">
-                        @if (in_array($userRole, ['admin', 'ketua_tim']))
-                            <a href="{{ route('projects.edit', $project) }}" class="btn btn-sm btn-warning"><i
-                                    class="fas fa-edit"></i></a>
-                        @endif
                         @if ($userRole === 'admin')
+                            <a href="{{ route('projects.edit', $project) }}" class="btn btn-sm btn-warning"><i
+                                    class="fas fa-edit"></i> Edit Proyek</a>
                             <form method="POST" action="{{ route('projects.destroy', $project) }}" class="d-inline ml-2"
                                 onsubmit="return confirm('Yakin hapus?');">
                                 @csrf @method('DELETE')
                                 <button type="submit" class="btn btn-sm btn-danger"><i class="fas fa-trash"></i></button>
                             </form>
                         @endif
-                        <a href="{{ route('projects.index') }}" class="btn btn-sm btn-secondary ml-2">Kembali</a>
+                        <a href="{{ in_array(auth()->user()->role ?? '', ['admin', 'ketua_tim']) ? route('projects.index') : route('dashboard') }}"
+                            class="btn btn-sm btn-secondary ml-2">
+                            <i class="fas fa-arrow-left"></i> Kembali
+                        </a>
                         @if (in_array($userRole, ['admin', 'ketua_tim']))
-                            <a href="{{ route('tasks.index', ['project_id' => $project->id]) }}"
-                                class="btn btn-sm btn-primary ml-2">Kelola Tasks</a>
+                            <a href="{{ route('projects.tasks.create', $project) }}" class="btn btn-sm btn-success ml-1"
+                                title="Tambah Task">
+                                <i class="fas fa-plus"></i> Tambah Tugas
+                            </a>
                         @endif
+
                     </div>
                 </div>
                 <div class="card-body">
                     <dl class="row">
                         {{-- <dt class="col-sm-3">ID:</dt>
-                    <dd class="col-sm-9">{{ $project->id }}</dd> --}}
+                        <dd class="col-sm-9">{{ $project->id }}</dd> --}}
 
-                        <dt class="col-sm-3">Nama:</dt>
-                        <dd class="col-sm-9"><strong>{{ $project->name }}</strong></dd>
+                        {{-- <dt class="col-sm-3">Nama:</dt>
+                        <dd class="col-sm-9"><strong>{{ $project->name }}</strong></dd> --}}
 
                         <dt class="col-sm-3">Deskripsi:</dt>
                         <dd class="col-sm-9">{{ $project->description ?? 'Tidak ada deskripsi' }}</dd>
@@ -60,71 +51,77 @@
                             </span>
                         </dd>
 
-                        <dt class="col-sm-3">Dibuat Oleh:</dt>
-                        <dd class="col-sm-9">{{ $project->creator->name ?? 'Unknown' }}</dd>
+                        <dt class="col-sm-3">Deadline:</dt>
+                        <dd class="col-sm-9">
+                            {{ $project->deadline ? \Carbon\Carbon::parse($project->deadline)->format('d M Y') : '-' }}</dd>
+
+                        <dt class="col-sm-3">Ketua Tim:</dt>
+                        <dd class="col-sm-9">{{ $project->teamLeader->name ?? 'Belum ditentukan' }}</dd>
+
+                        <dt class="col-sm-3">Prioritas:</dt>
+                        <dd class="col-sm-9">
+                            @php
+                                $priorityClass = match ($project->priority) {
+                                    'high' => 'danger',
+                                    'medium' => 'warning',
+                                    'low' => 'success',
+                                    default => 'secondary',
+                                };
+                            @endphp
+                            <div>
+                                <span class="badge badge-{{ $priorityClass }} mr-2">
+                                    {{ $project->priority ? strtoupper($project->priority) : 'NONE' }}
+                                </span>
+                            </div>
+                        </dd>
 
                         <dt class="col-sm-3">Dibuat Pada:</dt>
-                        <dd class="col-sm-9">{{ $project->created_at->format('d M Y H:i') }}</dd>
+                        <dd class="col-sm-9">{{ $project->created_at->format('d M Y') }}</dd>
 
                         <dt class="col-sm-3">Diupdate Pada:</dt>
-                        <dd class="col-sm-9">{{ $project->updated_at->format('d M Y H:i') }}</dd>
+                        <dd class="col-sm-9">{{ $project->updated_at->format('d M Y') }}</dd>
                     </dl>
                 </div>
             </div>
 
-            <!-- Tasks Terkait (List sederhana) -->
-            <div class="card card-secondary mt-4">
-                <div class="card-header">
-                    <h3 class="card-title">Tasks Terkait ({{ $project->tasks->count() }})</h3>
+            @if ($project->tasks->count() > 0)
+                <div class="table-responsive rounded">
+                    <table class="table table-bordered table-striped">
+                        <thead class="thead" style="background-color:cornflowerblue; text-align:center">
+                            <tr>
+                                <th>Nama Tugas</th>
+                                <th>Status</th>
+                                <th>Deadline</th>
+                                <th>Ditugaskan Kepada</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach ($project->tasks as $task)
+                                <tr>
+                                    <td>
+                                        <a
+                                            href="{{ route('projects.tasks.show', ['project' => $task->project_id, 'task' => $task->id]) }}">
+                                            <i class="fas fa-tasks mr-1"></i> {{ $task->name }}
+                                        </a>
+                                    </td>
+                                    <td style="text-align:center; vertical-align:middle">
+                                        <span
+                                            class="badge badge-{{ $task->status === 'Completed' ? 'success' : ($task->status === 'In Progress' ? 'warning' : 'info') }}">
+                                            {{ $task->status }}
+                                        </span>
+                                    </td>
+                                    <td style="text-align:center; vertical-align:middle">
+                                        {{ $task->due_date ? $task->due_date->format('d M Y') : 'Tidak ada' }}</td>
+                                    <td style="text-align:center; vertical-align:middle">
+                                        {{ $task->assignee->name ?? 'Tidak ditugaskan' }}</td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
                 </div>
-                <div class="card-body">
-                    @if ($project->tasks->count() > 0)
-                        <div class="table-responsive">
-                            <table class="table table-bordered table-striped">
-                                <thead class="thead-dark">
-                                    <tr>
-                                        <th>Nama Task</th>
-                                        <th>Status</th>
-                                        <th>Due Date</th>
-                                        <th>Ditugaskan Kepada</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @foreach ($project->tasks as $task)
-                                        <tr>
-                                            <td>{{ $task->name }}</td>
-                                            <td>
-                                                <span
-                                                    class="badge badge-{{ $task->status === 'Completed' ? 'success' : ($task->status === 'In Progress' ? 'warning' : 'info') }}">
-                                                    {{ $task->status }}
-                                                </span>
-                                            </td>
-                                            <td>{{ $task->due_date ? $task->due_date->format('d M Y') : 'Tidak ada' }}</td>
-                                            <td>{{ $task->assignee->name ?? 'Tidak ditugaskan' }}</td>
-                                        </tr>
-                                    @endforeach
-                                </tbody>
-                            </table>
-                        </div>
-                    @else
-                        <div class="alert alert-warning">Belum ada tasks untuk proyek ini.</div>
-                    @endif
-                </div>
-            </div>
+            @else
+                <div class="alert alert-warning">Belum ada tugas untuk proyek ini.</div>
+            @endif
         </div>
     </div>
-
-    <!-- Flash Messages (Global, tapi jarang di show) -->
-    @if (session('success'))
-        <div class="alert alert-success alert-dismissible fade show" role="alert">
-            {{ session('success') }}
-            <button type="button" class="close" data-dismiss="alert">&times;</button>
-        </div>
-    @endif
-    @if (session('error'))
-        <div class="alert alert-danger alert-dismissible fade show" role="alert">
-            {{ session('error') }}
-            <button type="button" class="close" data-dismiss="alert">&times;</button>
-        </div>
-    @endif
 @endsection

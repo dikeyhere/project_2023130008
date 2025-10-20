@@ -13,8 +13,8 @@
                 $table->text('description')->nullable();
                 $table->enum('status', ['Pending', 'In Progress', 'Completed'])->default('Pending');
                 $table->date('due_date')->nullable();
-                $table->unsignedBigInteger('project_id')->nullable();  // Foreign ke projects
-                $table->unsignedBigInteger('assigned_to')->nullable();  // User ID assigned
+                $table->unsignedBigInteger('project_id')->nullable();
+                $table->unsignedBigInteger('assigned_to')->nullable();
                 $table->timestamps();
 
                 $table->foreign('project_id')->references('id')->on('projects')->onDelete('cascade');

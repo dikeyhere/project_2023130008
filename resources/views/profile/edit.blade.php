@@ -1,29 +1,143 @@
-<x-app-layout>
-    <x-slot name="header">
-        <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-            {{ __('Profile') }}
-        </h2>
-    </x-slot>
+@extends('layouts.app')
 
-    <div class="py-12">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
-            <div class="p-4 sm:p-8 bg-white shadow sm:rounded-lg">
-                <div class="max-w-xl">
-                    @include('profile.partials.update-profile-information-form')
+@section('title', 'Edit Profil')
+
+@section('content')
+    <style>
+        .profile-card {
+            border-radius: 10px;
+            overflow: hidden;
+            transition: 0.3s;
+        }
+
+        .profile-header {
+            background: linear-gradient(135deg, #007bff, #00c6ff);
+            color: white;
+            text-align: center;
+            padding: 40px 20px;
+            position: relative;
+        }
+
+        .profile-avatar {
+            width: 140px;
+            height: 140px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 4px solid #fff;
+            position: absolute;
+            bottom: -70px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #f8f9fa;
+        }
+
+        .edit-avatar-btn {
+            position: absolute;
+            bottom: -45px;
+            left: 55%;
+            transform: translateX(50%);
+            background-color: #ffffff;
+            border: none;
+            color: #343434;
+            border-radius: 50%;
+            padding: 2px 5px;
+            cursor: pointer;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.25);
+            transition: all 0.3s ease;
+            font-size: 17px;
+        }
+
+        .edit-avatar-btn:hover {
+            background-color: #007bff;
+            color: #ffffff;
+            transform: translateX(50%) scale(1.1);
+        }
+
+        .profile-body {
+            padding: 80px 30px 30px 30px;
+        }
+    </style>
+
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card profile-card shadow-sm mb-4">
+                <div class="profile-header">
+                    <img id="profileImage"
+                        src="{{ $user->avatar ? asset('storage/avatars/' . $user->avatar) : asset('storage/images/default_profile.jpg') }}"
+                        alt="Avatar" class="profile-avatar">
+                    <button type="button" class="edit-avatar-btn"><i class="fas fa-pencil-alt"></i></button>
+                    <h3 class="mt-2 mb-5" style="font-size: 23px; font-weight:800">{{ strtoupper($user->name) }}</h3>
                 </div>
-            </div>
 
-            <div class="p-4 sm:p-8 bg-white shadow sm:rounded-lg">
-                <div class="max-w-xl">
-                    @include('profile.partials.update-password-form')
-                </div>
-            </div>
+                <div class="profile-body">
+                    <form method="POST" action="{{ route('profile.update') }}" enctype="multipart/form-data">
+                        @csrf
+                        @method('PUT')
 
-            <div class="p-4 sm:p-8 bg-white shadow sm:rounded-lg">
-                <div class="max-w-xl">
-                    @include('profile.partials.delete-user-form')
+                        <input type="file" name="avatar" id="avatar" class="d-none" accept="image/*">
+
+                        <div class="form-group mb-3">
+                            <label>Nama Lengkap</label>
+                            <input type="text" name="name" class="form-control" value="{{ old('name', $user->name) }}"
+                                required>
+                        </div>
+
+                        <div class="form-group mb-3">
+                            <label>Email</label>
+                            <input type="email" name="email" class="form-control"
+                                value="{{ old('email', $user->email) }}" required>
+                        </div>
+
+                        <div class="form-group mb-3">
+                            <label>Nomor Telepon</label>
+                            <input type="text" name="phone" class="form-control"
+                                value="{{ old('phone', $user->phone) }}">
+                        </div>
+
+                        <div class="form-group mb-3">
+                            <label>Alamat</label>
+                            <textarea name="address" class="form-control">{{ old('address', $user->address) }}</textarea>
+                        </div>
+
+                        <div class="form-group mb-3">
+                            <label>GitHub</label>
+                            <input type="text" name="github" class="form-control"
+                                value="{{ old('github', $user->github) }}">
+                        </div>
+
+                        <div class="text-center mt-4">
+                            <a href="{{ route('profile.show') }}" class="btn btn-secondary px-4"><i
+                                    class="fas fa-arrow-left"></i> Kembali</a>
+                            <button type="submit" class="btn btn-success px-4"><i class="fas fa-save"></i> Simpan</button>
+
+                        </div>
+                    </form>
                 </div>
             </div>
         </div>
     </div>
-</x-app-layout>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const avatarInput = document.getElementById('avatar');
+            const editBtn = document.querySelector('.edit-avatar-btn');
+            const profileImage = document.getElementById('profileImage');
+
+
+            editBtn.addEventListener('click', () => {
+                avatarInput.click();
+            });
+
+            avatarInput.addEventListener('change', (event) => {
+                const file = event.target.files[0];
+                if (!file) return;
+
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    profileImage.src = e.target.result;
+                };
+                reader.readAsDataURL(file);
+            });
+        });
+    </script>
+@endsection

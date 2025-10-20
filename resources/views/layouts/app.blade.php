@@ -6,22 +6,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>@yield('title', 'Dashboard') - {{ config('app.name', 'Manajemen Tugas Tim') }}</title>
 
-    <!-- Font Awesome (untuk icons di navbar/sidebar) -->
+    <!-- Font Awesome (icons) -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
-    <!-- Fonts: Figtree (Modern sans-serif untuk tampilan clean) -->
+    <!-- Fonts: Figtree -->
     <link rel="preconnect" href="https://fonts.bunny.net">
     <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
     <!-- AdminLTE CSS -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/admin-lte@3.2/dist/css/adminlte.min.css">
-    <!-- Breeze CSS ONLY (Comment JS untuk hindari BS5 konflik; CSS tetap untuk Tailwind jika perlu) -->
-    @vite(['resources/css/app.css']) <!-- CSS OK, JS commented di bawah -->
-    <!-- Custom CSS: Apply Figtree font global -->
+    @vite(['resources/css/app.css'])
+
     <style>
         body {
             font-family: 'Figtree', sans-serif;
         }
 
-        /* Opsional: Enhance untuk AdminLTE elements (headings, cards) */
         .content-header h1,
         .card-title,
         .small-box .inner h3 {
@@ -32,31 +30,85 @@
         .dropdown-item {
             font-weight: 400;
         }
+
+        .dark-mode {
+            background-color: #121212 !important;
+            color: #e0e0e0 !important;
+        }
+
+        .dark-mode .card-header {
+            background-color: #2c2c2c !important;
+            color: #fff !important;
+        }
+
+        .dark-mode .table {
+            color: #e0e0e0 !important;
+        }
+
+        body.dark-mode .navbar {
+            background-color: #1f1f1f;
+            color: #f1f1f1;
+        }
+
+        body.dark-mode .navbar a {
+            color: #f1f1f1;
+        }
+
+        .navbar a,
+        .navbar .nav-link,
+        .navbar .brand-link {
+            color: inherit;
+            transition: color 0.2s;
+        }
+
+        .navbar a:hover,
+        .navbar .nav-link:hover,
+        .navbar .brand-link:hover {
+            color: inherit !important;
+            text-decoration: none;
+        }
+
+        body.dark-mode .brand-link {
+            color: #ffffff;
+        }
+
+        body.dark-mode .brand-link:hover {
+            color: #ffffff !important;
+            text-decoration: none;
+        }
+
+        .form-control {
+            border-color: #c4c6c7;
+            border-radius: 3px;
+        }
     </style>
 </head>
 
-<body class="hold-transition sidebar-mini">
+<body class="{{ session('dark_mode') ? 'dark-mode' : '' }} hold-transition sidebar-mini">
     <div class="wrapper">
-        <!-- Navbar (Top Bar) -->
-        <nav class="main-header navbar navbar-expand navbar-white navbar-light">
-            <!-- Left navbar links -->
+        {{-- Navbar Atas --}}
+        <nav class="main-header navbar navbar-expand">
+
+            {{-- Navbar Kiri --}}
             <ul class="navbar-nav">
                 <li class="nav-item">
                     <a class="nav-link" data-widget="pushmenu" href="#" role="button"><i
                             class="fas fa-bars"></i></a>
                 </li>
-                <li class="nav-item d-none d-sm-inline-block">
-                    <a href="{{ route('dashboard') }}" class="nav-link">Dashboard</a>
-                </li>
             </ul>
 
-            <!-- Right navbar links: Dropdown Profile + Logout -->
+            {{-- Navbar Kanan --}}
             <ul class="navbar-nav ml-auto">
-                <!-- Profile Dropdown (Hanya untuk authenticated user) -->
+                <li class="nav-item">
+                    <button id="darkModeToggle" class="btn btn-secondary btn-sm align-items-center mt-1">
+                        <i class="fas fa-moon"></i>
+                    </button>
+                </li>
+
                 @auth
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" role="button" id="userDropdown"
-                            data-toggle="dropdown" aria-expanded="false"> <!-- BS4: data-toggle (AdminLTE standar) -->
+                            data-toggle="dropdown" aria-expanded="false">
                             <i class="far fa-user"></i>
                             <span class="d-none d-md-inline ml-1">{{ Auth::user()->name }}</span>
                             @if (Auth::user()->role)
@@ -66,17 +118,17 @@
                                 </span>
                             @endif
                         </a>
-                        <!--Dropdown Menu (Header, Profile link, Logout) -->
+
                         <div class="dropdown-menu dropdown-menu-lg dropdown-menu-right">
                             <span class="dropdown-item dropdown-header">{{ Auth::user()->name }}</span>
-                            <!-- Header -->
+
                             <div class="dropdown-divider"></div>
                             <a href="{{ route('profile.show') }}" class="dropdown-item">
-                                <!-- Profile link -->
-                                <i class="fas fa-user mr-2"></i>Profile
+
+                                <i class="fas fa-user mr-2"></i>Profil
                             </a>
                             <div class="dropdown-divider"></div>
-                            <!-- Logout Form -->
+
                             <form method="POST" action="{{ route('logout') }}" class="d-inline" id="logout-form">
                                 @csrf
                             </form>
@@ -92,7 +144,6 @@
                         </div>
                     </li>
                 @else
-                    <!-- Guest: Link Login/Register -->
                     <li class="nav-item">
                         <a href="{{ route('login') }}" class="nav-link">Login</a>
                     </li>
@@ -100,19 +151,18 @@
             </ul>
         </nav>
 
-        <!-- Main Sidebar Container -->
+        {{-- Main Sidebar --}}
         <aside class="main-sidebar sidebar-dark-primary elevation-4">
-            <!-- Brand Logo -->
+
             <a href="{{ route('dashboard') }}" class="brand-link">
                 <span class="brand-text font-weight-light">Manajemen Tugas Tim</span>
             </a>
 
-            <!-- Sidebar -->
             <div class="sidebar">
                 <nav class="mt-2">
                     <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu"
                         data-accordion="false">
-                        <!-- Dashboard -->
+
                         <li class="nav-item">
                             <a href="{{ route('dashboard') }}"
                                 class="nav-link {{ request()->routeIs('dashboard') ? 'active' : '' }}">
@@ -121,39 +171,41 @@
                             </a>
                         </li>
 
-                        <!-- Role-Based Menu: Projects (Admin & Ketua Tim) -->
-                        @if (Auth::user()->role === 'admin' || Auth::user()->role === 'ketua_tim')
-                            <li class="nav-item">
-                                <a href="{{ route('projects.index') }}"
-                                    class="nav-link {{ request()->routeIs('projects.*') ? 'active' : '' }}">
-                                    <i class="nav-icon fas fa-project-diagram"></i>
-                                    <p>Proyek</p>
-                                </a>
-                            </li>
-                            @if (Auth::user()->role === 'admin')
-                                <li class="nav-item">
-                                    <a href="{{ route('projects.create') }}" class="nav-link">
-                                        <i class="nav-icon fas fa-plus"></i>
-                                        <p>Tambah Proyek</p>
-                                    </a>
-                                </li>
-                            @endif
-                        @endif
-
-                        <!-- Tasks (Semua Role) -->
                         <li class="nav-item">
-                            <a href="{{ route('tasks.index') }}"
-                                class="nav-link {{ request()->routeIs('tasks.*') ? 'active' : '' }}">
-                                <i class="nav-icon fas fa-tasks"></i>
-                                <p>Tugas</p>
+                            <a href="{{ route('projects.index') }}"
+                                class="nav-link {{ request()->routeIs('projects.*') ? 'active' : '' }}">
+                                <i class="nav-icon fas fa-project-diagram"></i>
+                                <p>Proyek</p>
                             </a>
                         </li>
+                        @if (Auth::user()->role === 'admin')
+                            <li class="nav-item">
+                                <a href="{{ route('projects.create') }}" class="nav-link">
+                                    <i class="nav-icon fas fa-plus"></i>
+                                    <p>Tambah Proyek</p>
+                                </a>
+                            </li>
+                        @endif
 
-                        <!-- Profile (Semua Role) -->
+                        <li class="nav-item">
+                            @isset($project)
+                                <a href="{{ route('tasks.index') }}"
+                                    class="nav-link {{ request()->routeIs('tasks.*') ? 'active' : '' }}">
+                                    <i class="nav-icon fas fa-tasks"></i>
+                                    <p>Tugas</p>
+                                </a>
+                            @else
+                                <a href="{{ route('tasks.index') }}" class="nav-link">
+                                    <i class="nav-icon fas fa-tasks"></i>
+                                    <p>Tugas</p>
+                                </a>
+                            @endisset
+                        </li>
+
                         <li class="nav-item">
                             <a href="{{ route('profile.show') }}" class="nav-link">
                                 <i class="nav-icon fas fa-user"></i>
-                                <p>Profile</p>
+                                <p>Profil</p>
                             </a>
                         </li>
                     </ul>
@@ -161,9 +213,9 @@
             </div>
         </aside>
 
-        <!-- Content Wrapper -->
+        {{-- Content Wrapper  --}}
         <div class="content-wrapper">
-            <!-- Content Header (Breadcrumbs) -->
+            {{-- Breadcrumbs --}}
             <div class="content-header">
                 <div class="container-fluid">
                     <div class="row mb-2">
@@ -180,84 +232,71 @@
                 </div>
             </div>
 
-            <!-- Main content -->
+            {{-- Main content --}}
             <section class="content">
                 <div class="container-fluid">
                     @if (session('status'))
-                        <div class="alert alert-success alert-dismissible fade show" role="alert">
+                        <div class="alert alert-success alert-dismissible fade show flash-message" role="alert">
                             {{ session('status') }}
                             <button type="button" class="close" data-dismiss="alert" aria-label="Close">
                                 <span aria-hidden="true">&times;</span>
                             </button>
                         </div>
                     @endif
-                    @if (session('error'))
-                        <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                            {{ session('error') }}
-                            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                                <span aria-hidden="true">&times;</span>
-                            </button>
+                    @if (session('success'))
+                        <div class="alert alert-success alert-dismissible fade show flash-message" role="alert">
+                            {{ session('success') }}
+                            <button type="button" class="close" data-dismiss="alert">&times;</button>
                         </div>
+                    @endif
+                    @if (!request()->routeIs('profile.show'))
+                        @if (session('error'))
+                            <div class="alert alert-danger alert-dismissible fade show flash-message" role="alert">
+                                {{ session('error') }}
+                                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                                    <span aria-hidden="true">&times;</span>
+                                </button>
+                            </div>
+                        @endif
                     @endif
                     @yield('content')
                 </div>
             </section>
         </div>
 
-        <!-- Footer -->
-        <footer class="main-footer">
-            <strong>Project 2023130008 &copy; 2024 Manajemen Tugas Tim.</strong>
-            All rights reserved.
+        {{-- Footer --}}
+        <footer class="main-footer" style="text-align: center">
+            Project Manajemen Tugas Tim - 2023130008 Andika
         </footer>
     </div>
 
-    <!-- Scripts: Urutan Benar & Sekali Saja (No Duplikasi, No Custom Init) -->
-    <!-- 1. jQuery (Versi stabil, sekali) -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-
-    <!-- 2. Bootstrap 4 Bundle (Include Popper untuk dropdowns/tooltips) -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
-
-    {{-- <!-- 3. AdminLTE JS (Auto-init semua widgets: collapse, pushmenu, dropdown, alerts) -->
-    <script src="https://cdn.jsdelivr.net/npm/admin-lte@3.2/dist/js/adminlte.min.js"></script> --}}
-    <!-- 3. AdminLTE JS (Local - No CDN Issue) -->
-    {{-- <script src="{{ asset('js/adminlte.min.js') }}"></script> --}}
-    {{-- <script src="https://unpkg.com/admin-lte@3.2.0/dist/js/adminlte.min.js"></script> --}}
     <script src="https://cdnjs.cloudflare.com/ajax/libs/admin-lte/3.2.0/js/adminlte.min.js"></script>
-
-    <!-- 4. Chart.js (Opsional global, jika dipakai di banyak view; else pindah ke view-specific) -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
 
-    <!-- 5. Font Awesome JS (Opsional, jika butuh icons interaktif; CSS sudah cukup) -->
-    <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/js/all.min.js"></script> -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const toggleBtn = document.getElementById('darkModeToggle');
 
-    <!-- 6. Yield & Stack Scripts (Untuk custom JS dari views, sekali saja) -->
+            toggleBtn.addEventListener('click', function() {
+                document.body.classList.toggle('dark-mode');
 
-    <!-- ... AdminLTE script ... -->
+                fetch("{{ route('toggle.darkmode') }}", {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                    }
+                });
+            });
+        });
+    </script>
 
-    <!-- Debug Script (Sementara: Hapus setelah fix) -->
     <script>
         $(document).ready(function() {
-            // Check jQuery (sudah OK)
-            console.log('jQuery Version:', $.fn ? $.fn.jquery : 'Missing');
-
-            // Better AdminLTE Check: Pakai plugin spesifik (pushMenu/CardWidget proxy)
-            const adminLTELoaded = typeof $.fn.pushMenu !== 'undefined' || typeof $.fn.cardWidget !== 'undefined';
-            console.log('AdminLTE Loaded:', adminLTELoaded ? 'Yes (Plugins OK)' : 'No (Script Missing)');
-
-            // Test Collapse Manual (Jika loaded, trigger satu collapse)
-            if (adminLTELoaded) {
-                console.log('Testing Collapse Widget...');
-                // AdminLTE auto-init, tapi force re-init jika perlu
-                if (typeof $.AdminLTE !== 'undefined') {
-                    $.AdminLTE.init(); // Re-init global jika available
-                }
-            } else {
-                console.warn('AdminLTE not loaded - Widgets (collapse, sidebar) will not work');
-            }
-
-            // Test Dropdown (BS4)
-            console.log('Bootstrap Dropdown Available:', typeof $.fn.dropdown !== 'undefined');
+            setTimeout(function() {
+                $('.flash-message').fadeOut('slow');
+            }, 3000);
         });
     </script>
 

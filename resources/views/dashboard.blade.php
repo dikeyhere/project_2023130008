@@ -14,12 +14,11 @@
         }
     </style>
 
-    <!-- Role-based Welcome Alert (Hanya pertama kali) -->
     @if ($showWelcome)
         <div class="row">
             <div class="col-12">
                 <div class="alert alert-{{ $userRole === 'admin' ? 'success' : ($userRole === 'ketua_tim' ? 'warning' : 'info') }} alert-dismissible fade show border rounded"
-                    role="alert" style="background-color: #f8f9fa; border-color: #dee2e6;">
+                    role="alert" style="background-color: #76afe9; border-color: #dee2e6; color: #212121">
                     Selamat datang, {{ Auth::user()->name }}!
                     <button type="button" class="close" data-dismiss="alert" aria-label="Close">
                         <span aria-hidden="true">&times;</span>
@@ -29,84 +28,118 @@
         </div>
     @endif
 
-    <!-- Info Cards (Stats) - Responsive grid -->
     <div class="row">
         <div class="col-lg-3 col-6">
-            <!-- Total Projects Card -->
-            <div class="small-box bg-info">
-                <div class="inner">
-                    <h3>{{ $totalProjects ?? 0 }}</h3>
-                    <p>Total Proyek</p>
-                </div>
-                <div class="icon">
-                    <i class="fas fa-project-diagram"></i>
-                </div>
-                <a href="{{ route('projects.index') }}" class="small-box-footer" title="Lihat detail proyek">
+            @if (in_array($userRole, ['admin', 'ketua_tim']))
+                <div class="small-box bg-info">
+                    <div class="inner">
+                        <h3>{{ $totalProjects ?? 0 }}</h3>
+                        <p>Total Proyek</p>
+                    </div>
+                    <div class="icon">
+                        <i class="fas fa-project-diagram"></i>
+                    </div>
+                    {{-- <a href="{{ route('projects.index') }}" class="small-box-footer" title="Lihat detail proyek">
                     Lihat Semua <i class="fas fa-arrow-circle-right"></i>
-                </a>
-            </div>
-        </div>
-
-        <div class="col-lg-3 col-6">
-            <!-- Total Tasks -->
-            <div class="small-box bg-warning">
-                <div class="inner">
-                    <h3 class="text-white">{{ $totalTasks ?? 0 }}</h3>
-                    <p class="text-white">Total Tugas</p>
+                </a> --}}
                 </div>
-                <div class="icon">
-                    <i class="fas fa-tasks"></i>
-                </div>
-                <a href="{{ route('tasks.index') }}" class="small-box-footer text-white" title="Lihat semua tasks">
-                    Lihat Semua <i class="fas fa-arrow-circle-right text-white"></i>
-                </a>
-            </div>
-        </div>
-
-        <div class="col-lg-3 col-6">
-            <!-- Completed Projects -->
-            <div class="small-box bg-success">
-                <div class="inner">
-                    <h3>{{ $completedProjects ?? 0 }}</h3>
-                    <p>Proyek Selesai</p>
-                </div>
-                <div class="icon">
-                    <i class="fas fa-check-circle"></i>
-                </div>
-                <a href="{{ route('projects.index') }}" class="small-box-footer" title="Lihat proyek selesai">
+            @else
+                <div class="small-box bg-warning">
+                    <div class="inner">
+                        <h3 class="text-white">{{ $totalTasks ?? 0 }}</h3>
+                        <p class="text-white">Total Tugas</p>
+                    </div>
+                    <div class="icon">
+                        <i class="fas fa-tasks"></i>
+                    </div>
+                    {{-- <a href="{{ route('tasks.index') }}" class="small-box-footer" title="Lihat detail tugas">
                     Lihat Semua <i class="fas fa-arrow-circle-right"></i>
-                </a>
-            </div>
+                </a> --}}
+                </div>
+            @endif
         </div>
 
         <div class="col-lg-3 col-6">
-            <!-- Persentase Penyelesaian Tasks -->
+            @if (in_array($userRole, ['admin', 'ketua_tim']))
+                <div class="small-box bg-success">
+                    <div class="inner">
+                        <h3>{{ $completedProjects ?? 0 }}</h3>
+                        <p>Proyek Selesai</p>
+                    </div>
+                    <div class="icon">
+                        <i class="fas fa-check-circle"></i>
+                    </div>
+                    {{-- <a href="{{ route('projects.index') }}" class="small-box-footer" title="Lihat proyek selesai">
+                    Lihat Semua <i class="fas fa-arrow-circle-right"></i>
+                </a> --}}
+                </div>
+            @else
+                <div class="small-box bg-success">
+                    <div class="inner">
+                        <h3>{{ $completedTasks ?? 0 }}</h3>
+                        <p>Tugas Selesai</p>
+                    </div>
+                    <div class="icon">
+                        <i class="fas fa-check-circle"></i>
+                    </div>
+                    {{-- <a href="{{ route('projects.index') }}" class="small-box-footer" title="Lihat proyek selesai">
+                    Lihat Semua <i class="fas fa-arrow-circle-right"></i>
+                </a> --}}
+                </div>
+            @endif
+        </div>
+
+        <div class="col-lg-3 col-6">
+            @if (in_array($userRole, ['admin', 'ketua_tim']))
+                <div class="small-box bg-warning">
+                    <div class="inner">
+                        <h3 class="text-white">{{ $totalTasks ?? 0 }}</h3>
+                        <p class="text-white">Total Tugas</p>
+                    </div>
+                    <div class="icon">
+                        <i class="fas fa-tasks"></i>
+                    </div>
+                    {{-- <a href="{{ route('tasks.index') }}" class="small-box-footer" title="Lihat detail tugas">
+                    Lihat Semua <i class="fas fa-arrow-circle-right"></i>
+                </a> --}}
+                </div>
+            @else
+                <div class="small-box bg-info">
+                    <div class="inner">
+                        <h3>{{ $totalProjects ?? 0 }}</h3>
+                        <p>Total Proyek</p>
+                    </div>
+                    <div class="icon">
+                        <i class="fas fa-project-diagram"></i>
+                    </div>
+                    {{-- <a href="{{ route('projects.index') }}" class="small-box-footer" title="Lihat detail proyek">
+                    Lihat Semua <i class="fas fa-arrow-circle-right"></i>
+                </a> --}}
+                </div>
+            @endif
+        </div>
+
+        <div class="col-lg-3 col-6">
             <div class="small-box bg-primary">
                 <div class="inner">
-                    <h3>
-                        @php
-                            $totalTasks = $totalTasks ?? 0;
-                            $completedTasks = $completedTasks ?? 0;
-                            $percentage = $totalTasks > 0 ? number_format(($completedTasks / $totalTasks) * 100, 0) : 0;
-                        @endphp
-                        {{ $percentage }}%
-                    </h3>
+                    @php
+                        $totalTasks = $totalTasks ?? 0;
+                        $completedTasks = $completedTasks ?? 0;
+                        $percentage = $totalTasks > 0 ? number_format(($completedTasks / $totalTasks) * 100, 0) : 0;
+                    @endphp
+                    <h3>{{ $percentage }}%</h3>
                     <p>Penyelesaian</p>
                 </div>
                 <div class="icon">
                     <i class="fas fa-chart-pie"></i>
                 </div>
-                <a href="{{ route('tasks.index') }}" class="small-box-footer" title="Lihat detail tasks dan progress">
-                    Lihat Semua <i class="fas fa-arrow-circle-right"></i>
-                </a>
             </div>
         </div>
     </div>
 
-    <!-- Projects Table (Recent) -->
     <div class="row">
         <div class="col-12">
-            <div class="card">
+            <div class="card card-secondary">
                 <div class="card-header">
                     <h3 class="card-title">Proyek Terbaru</h3>
                     <div class="card-tools">
@@ -130,46 +163,79 @@
                         <div class="table-responsive">
                             <table class="table table-bordered table-striped mb-0">
                                 <thead class="thead-dark">
-                                    <tr>
-                                        {{-- <th>ID</th> --}}
+                                    <tr style="text-align:center">
                                         <th>Nama Proyek</th>
                                         <th>Status</th>
-                                        <th>Jumlah Tasks</th>
-                                        <th>Aksi</th>
+                                        <th>Jumlah Tugas</th>
+                                        <th>Progress</th>
+                                        {{-- <th>Aksi</th> --}}
                                     </tr>
                                 </thead>
                                 <tbody>
                                     @foreach ($recentProjects as $project)
                                         <tr>
-                                            {{-- <td>{{ $project->id }}</td> --}}
                                             <td>
-                                                <strong>{{ $project->name }}</strong>
-                                                {{-- @if ($project->creator)
-                                                    <br><small class="text-muted">Oleh:
-                                                        {{ $project->creator->name }}</small>
-                                                @endif --}}
+                                                <a href="{{ route('projects.show', $project->id) }}">
+                                                    {{ $project->name }}
+                                                </a><br>
+                                                <small class="text-muted">
+                                                    <i class="fas fa-calendar-alt"></i>
+                                                    Deadline:
+                                                    {{ $project->deadline ? \Carbon\Carbon::parse($project->deadline)->format('d M Y') : '-' }}
+                                                </small>
                                             </td>
-                                            <td>
+                                            <td style="text-align:center">
                                                 <span
                                                     class="badge badge-{{ $project->status === 'Completed' ? 'success' : ($project->status === 'In Progress' ? 'warning' : ($project->status === 'Planning' ? 'info' : 'secondary')) }}">
                                                     {{ $project->status }}
                                                 </span>
                                             </td>
-                                            <td>
+                                            <td style="text-align:center">
                                                 <span class="badge badge-info">{{ $project->tasks->count() ?? 0 }}</span>
                                             </td>
-                                            <td>
+
+                                            <td style="width: 20%; vertical-align:middle">
+                                                @php
+                                                    $progress = $project->progress ?? 0;
+                                                @endphp
+                                                <div class="progress rounded" style="height: 17px;">
+                                                    <div class="progress-bar 
+                                                    {{ $progress == 100 ? 'bg-success' : ($progress >= 50 ? 'bg-info' : 'bg-warning') }}"
+                                                        role="progressbar" style="width: {{ $progress }}%;"
+                                                        aria-valuenow="{{ $progress }}" aria-valuemin="0"
+                                                        aria-valuemax="100">
+                                                        <small class="font-weight-bold">{{ $progress }}%</small>
+                                                    </div>
+                                                </div>
+                                            </td>
+
+                                            {{-- Aksi --}}
+                                            {{-- <td style="text-align:center">
                                                 <a href="{{ route('projects.show', $project->id) }}"
                                                     class="btn btn-sm btn-info" title="Lihat detail">
                                                     <i class="fas fa-eye"></i>
                                                 </a>
+
                                                 @if (in_array($userRole, ['admin', 'ketua_tim']))
                                                     <a href="{{ route('projects.edit', $project->id) }}"
                                                         class="btn btn-sm btn-warning ml-1" title="Edit">
                                                         <i class="fas fa-edit"></i>
                                                     </a>
+                                                    <a href="{{ route('projects.show', $project) }}"
+                                                        class="btn btn-sm btn-primary ml-1" title="Kelola Tugas">
+                                                        <i class="fas fa-tasks"></i>
+                                                    </a>
+                                                    {{-- <a href="{{ route('projects.tasks.create', $project) }}"
+                                                        class="btn btn-sm btn-success ml-1" title="Tambah Task">
+                                                        <i class="fas fa-plus"></i>
+                                                    </a> --}}
+                                            {{-- @else
+                                                    <a href="{{ route('projects.show', $project) }}"
+                                                        class="btn btn-sm btn-primary ml-1" title="Lihat Tugas">
+                                                        <i class="fas fa-tasks"></i> Lihat Tugas
+                                                    </a>
                                                 @endif
-                                            </td>
+                                            </td> --}}
                                         </tr>
                                     @endforeach
                                 </tbody>
@@ -181,10 +247,9 @@
         </div>
     </div>
 
-    <!-- Chart Section (Pie Chart) -->
     <div class="row">
         <div class="col-12">
-            <div class="card">
+            <div class="card card-primary">
                 <div class="card-header">
                     <h3 class="card-title">Distribusi Status Proyek</h3>
                     <div class="card-tools">
@@ -206,10 +271,8 @@
 @endsection
 
 @push('scripts')
-    <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
     <script>
-        // Inisialisasi Chart (Interaktif: Hover tooltip, responsive, real data dari $projectStatuses)
         document.addEventListener('DOMContentLoaded', function() {
             const ctx = document.getElementById('projectsChart');
             if (ctx) {
@@ -223,10 +286,10 @@
                             datasets: [{
                                 data: Object.values(statuses),
                                 backgroundColor: [
-                                    '#17a2b8', // Planning (info cyan)
-                                    '#ffc107', // In Progress (warning yellow)
-                                    '#28a745', // Completed (success green)
-                                    '#dc3545' // On Hold (danger red)
+                                    '#17a2b8',
+                                    '#ffc107',
+                                    '#28a745',
+                                    '#dc3545'
                                 ],
                                 borderWidth: 2,
                                 borderColor: '#fff'
@@ -272,7 +335,6 @@
             }
         });
 
-        // Hover effect pada cards (shadow + lift)
         $('.small-box').hover(
             function() {
                 $(this).addClass('shadow-lg');
@@ -282,7 +344,6 @@
             }
         );
 
-        // Auto-hide welcome alert setelah 3 detik
         $(document).ready(function() {
             setTimeout(function() {
                 $('.alert').fadeOut('slow', function() {

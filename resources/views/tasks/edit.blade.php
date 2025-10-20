@@ -1,22 +1,23 @@
 @extends('layouts.app')
 
-@section('title', 'Edit Task: ' . $task->name)
+@section('title', 'Edit Tugas: ' . $task->name)
 
 @section('content')
     <div class="row justify-content-center">
         <div class="col-md-8">
             <div class="card card-warning">
                 <div class="card-header">
-                    <h3 class="card-title">Edit Task</h3>
+                    <h3 class="card-title">Edit Tugas</h3>
                 </div>
-                <form method="POST" action="{{ route('tasks.update', $task) }}">
+                <form method="POST"
+                    action="{{ route('projects.tasks.update', ['project' => $task->project_id, 'task' => $task->id]) }}">
                     @csrf
                     @method('PUT')
 
                     <div class="card-body">
-                        <!-- Name -->
+
                         <div class="form-group">
-                            <label for="name">Nama Task <span class="text-danger">*</span></label>
+                            <label for="name">Nama Tugas <span class="text-danger">*</span></label>
                             <div class="input-group">
                                 <div class="input-group-prepend">
                                     <span class="input-group-text"><i class="fas fa-tasks"></i></span>
@@ -30,7 +31,6 @@
                             </div>
                         </div>
 
-                        <!-- Description -->
                         <div class="form-group">
                             <label for="description">Deskripsi</label>
                             <div class="input-group">
@@ -45,7 +45,22 @@
                             </div>
                         </div>
 
-                        <!-- Status -->
+                        <div class="form-group">
+                            <label for="due_date">Deadline <span class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <div class="input-group-prepend">
+                                    <span class="input-group-text"><i class="fas fa-calendar"></i></span>
+                                </div>
+                                <input type="date" name="due_date" id="due_date"
+                                    class="form-control @error('due_date') is-invalid @enderror"
+                                    value="{{ old('due_date', $task->due_date ? $task->due_date->format('Y-m-d') : '') }}"
+                                    min="{{ date('Y-m-d') }}" required>
+                                @error('due_date')
+                                    <span class="invalid-feedback">{{ $message }}</span>
+                                @enderror
+                            </div>
+                        </div>
+
                         <div class="form-group">
                             <label for="status">Status <span class="text-danger">*</span></label>
                             <div class="input-group">
@@ -67,69 +82,47 @@
                             </div>
                         </div>
 
-                        <!-- Due Date -->
                         <div class="form-group">
-                            <label for="due_date">Due Date</label>
+                            <label for="priority">Prioritas <span class="text-danger">*</span></label>
                             <div class="input-group">
                                 <div class="input-group-prepend">
-                                    <span class="input-group-text"><i class="fas fa-calendar"></i></span>
+                                    <span class="input-group-text"><i class="fas fa-tag"></i></span>
                                 </div>
-                                <input type="date" name="due_date" id="due_date"
-                                    class="form-control @error('due_date') is-invalid @enderror"
-                                    value="{{ old('due_date', $task->due_date ? $task->due_date->format('Y-m-d') : '') }}"
-                                    min="{{ date('Y-m-d') }}">
-                                @error('due_date')
+                                <select name="priority" id="priority"
+                                    class="form-control @error('priority') is-invalid @enderror" required>
+                                    <option value="">Pilih Prioritas</option>
+                                    @foreach ($priorities as $priority)
+                                        <option value="{{ $priority }}"
+                                            {{ old('priority', $task->priority) == $priority ? 'selected' : '' }}>
+                                            {{ ucfirst($priority) }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                                @error('priority')
                                     <span class="invalid-feedback">{{ $message }}</span>
                                 @enderror
                             </div>
                         </div>
 
-                        <!-- Project (Hanya admin/ketua) -->
-                        @if (in_array($userRole ?? 'anggota', ['admin', 'ketua_tim']) && !empty($projects))
-                            <div class="form-group">
-                                <label for="project_id">Project <span class="text-danger">*</span></label>
-                                <div class="input-group">
-                                    <div class="input-group-prepend">
-                                        <span class="input-group-text"><i class="fas fa-project-diagram"></i></span>
-                                    </div>
-                                    <select name="project_id" id="project_id"
-                                        class="form-control @error('project_id') is-invalid @enderror" required>
-                                        <option value="">Pilih Project</option>
-                                        @foreach ($projects as $project)
-                                            <option value="{{ $project->id }}"
-                                                {{ old('project_id', $task->project_id) == $project->id ? 'selected' : '' }}>
-                                                {{ $project->name }}</option>
-                                        @endforeach
-                                    </select>
-                                    @error('project_id')
-                                        <span class="invalid-feedback">{{ $message }}</span>
-                                    @enderror
-                                </div>
-                            </div>
-                        @else
-                            <input type="hidden" name="project_id" value="{{ $task->project_id }}">
-                            <div class="form-group">
-                                <label>Project:</label>
-                                <p class="form-control-plaintext">{{ $task->project->name ?? 'Unknown' }} (Tidak bisa
-                                    diubah)</p>
-                            </div>
-                        @endif
+                        <div class="form-group">
+                            <label for="project_name">Project</label>
+                            <input type="text" class="form-control" value="{{ $project->name }}" readonly>
+                        </div>
 
-                        <!-- Assigned To (Hanya admin/ketua) -->
                         @if (in_array($userRole ?? 'anggota', ['admin', 'ketua_tim']) && !empty($users))
                             <div class="form-group">
-                                <label for="assigned_to">Ditugaskan Kepada</label>
+                                <label for="assigned_to">Ditugaskan Kepada <span class="text-danger">*</span></label>
                                 <div class="input-group">
                                     <div class="input-group-prepend">
                                         <span class="input-group-text"><i class="fas fa-user"></i></span>
                                     </div>
-                                    <select name="assigned_to" id="assigned_to"
-                                        class="form-control @error('assigned_to') is-invalid @enderror">
-                                        <option value="">Tidak ditugaskan</option>
+                                    <select name="assigned_to" id="assigned_to" class="form-control" required>
+                                        <option value="" disabled>Tidak Ditugaskan</option>
                                         @foreach ($users as $user)
                                             <option value="{{ $user->id }}"
-                                                {{ old('assigned_to', $task->assigned_to) == $user->id ? 'selected' : '' }}>
-                                                {{ $user->name }} ({{ $user->role }})</option>
+                                                {{ isset($task) && $task->assigned_to == $user->id ? 'selected' : '' }}>
+                                                {{ $user->name }} ({{ ucwords(str_replace('_', ' ', $user->role)) }})
+                                            </option>
                                         @endforeach
                                     </select>
                                     @error('assigned_to')
@@ -137,36 +130,16 @@
                                     @enderror
                                 </div>
                             </div>
-                        @else
-                            <input type="hidden" name="assigned_to" value="{{ $task->assigned_to }}">
-                            <div class="form-group">
-                                <label>Ditugaskan Kepada:</label>
-                                <p class="form-control-plaintext">{{ $task->assignee->name ?? 'Tidak ditugaskan' }} (Tidak
-                                    bisa diubah)</p>
-                            </div>
                         @endif
                     </div>
 
                     <div class="card-footer">
-                        <button type="submit" class="btn btn-warning">Update Task</button>
-                        <a href="{{ route('tasks.show', $task) }}" class="btn btn-secondary float-right">Batal</a>
+                        <button type="submit" class="btn btn-warning">Update Tugas</button>
+                        <a href="{{ route('projects.tasks.index', ['project' => $task->project_id, 'task' => $task->id]) }}"
+                            class="btn btn-secondary float-right">Batal</a>
                     </div>
                 </form>
             </div>
         </div>
     </div>
-
-    <!-- Flash Messages -->
-    @if (session('success'))
-        <div class="alert alert-success alert-dismissible fade show" role="alert">
-            {{ session('success') }}
-            <button type="button" class="close" data-dismiss="alert">&times;</button>
-        </div>
-    @endif
-    @if (session('error'))
-        <div class="alert alert-danger alert-dismissible fade show" role="alert">
-            {{ session('error') }}
-            <button type="button" class="close" data-dismiss="alert">&times;</button>
-        </div>
-    @endif
 @endsection

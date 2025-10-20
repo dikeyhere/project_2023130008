@@ -12,51 +12,74 @@ class DashboardController extends Controller
     public function index(Request $request)
     {
         $user = Auth::user();
-        $userRole = $user->role ?? 'anggota';
+        $userRole = $user->role ?? 'anggota_tim';
 
-        // Logic Alert: Hanya muncul pertama kali login (per session)
-        $showWelcome = !$request->session()->has('hasSeenWelcome');  // True jika belum ada key
+        $showWelcome = !$request->session()->has('hasSeenWelcome');
         if ($showWelcome) {
-            $request->session()->put('hasSeenWelcome', true);  // Set persist untuk seluruh session
+            $request->session()->put('hasSeenWelcome', true);
         }
 
-        // Base queries role-based
         if ($userRole === 'admin') {
-            // Admin: Lihat semua
             $totalProjects = Project::count();
             $completedProjects = Project::where('status', 'Completed')->count();
             $totalTasks = Task::count();
             $completedTasks = Task::where('status', 'Completed')->count();
-            $recentProjects = Project::with(['creator', 'tasks'])->latest()->take(5)->get();
-            $projectQuery = Project::query();  // Untuk statuses
+
+            $recentProjects = Project::with(['creator', 'tasks'])
+                ->latest()
+                ->take(5)
+                ->get();
+
+            $projectQuery = Project::query();
         } elseif ($userRole === 'ketua_tim') {
-            // Ketua: Lihat semua projects (dibuat admin, untuk tim) & semua tasks
-            $totalProjects = Project::count();  // Semua projects
-            $completedProjects = Project::where('status', 'Completed')->count();
-            $totalTasks = Task::count();  // Semua tasks
-            $completedTasks = Task::where('status', 'Completed')->count();
-            $recentProjects = Project::with(['creator', 'tasks'])->latest()->take(5)->get();  // Semua recent
-            $projectQuery = Project::query();  // Semua untuk statuses
+            $totalProjects = Project::where('team_leader_id', $user->id)->count();
+            $completedProjects = Project::where('team_leader_id', $user->id)
+                ->where('status', 'Completed')
+                ->count();
+
+            $totalTasks = Task::whereHas('project', function ($q) use ($user) {
+                $q->where('team_leader_id', $user->id);
+            })->count();
+            $completedTasks = Task::whereHas('project', function ($q) use ($user) {
+                $q->where('team_leader_id', $user->id);
+            })->where('status', 'Completed')->count();
+
+            $recentProjects = Project::where('team_leader_id', $user->id)
+                ->with(['creator', 'tasks'])
+                ->latest()
+                ->take(5)
+                ->get();
+
+            $projectQuery = Project::where('team_leader_id', $user->id);
         } else {
-            // Anggota: Projects/tasks assigned to them
             $totalProjects = Project::whereHas('tasks', function ($q) use ($user) {
                 $q->where('assigned_to', $user->id);
             })->count();
+
             $completedProjects = Project::whereHas('tasks', function ($q) use ($user) {
                 $q->where('assigned_to', $user->id);
-            })->where('status', 'Completed')->count();  // Fix: Projects completed yang punya own tasks
+            })->where('status', 'Completed')->count();
+
             $totalTasks = Task::where('assigned_to', $user->id)->count();
-            $completedTasks = Task::where('assigned_to', $user->id)->where('status', 'Completed')->count();
+            $completedTasks = Task::where('assigned_to', $user->id)
+                ->where('status', 'Completed')
+                ->count();
+
             $recentProjects = Project::whereHas('tasks', function ($q) use ($user) {
                 $q->where('assigned_to', $user->id);
-            })->with(['creator', 'tasks'])->latest()->take(5)->get();
+            })
+                ->with(['creator', 'tasks'])
+                ->latest()
+                ->take(5)
+                ->get();
+
             $projectQuery = Project::whereHas('tasks', function ($q) use ($user) {
                 $q->where('assigned_to', $user->id);
-            });  // Filtered untuk statuses
+            });
         }
 
-        // Project statuses untuk chart (role-based)
-        $projectStatuses = $projectQuery->selectRaw('status, count(*) as count')
+        $projectStatuses = $projectQuery
+            ->selectRaw('status, count(*) as count')
             ->groupBy('status')
             ->pluck('count', 'status')
             ->toArray();
