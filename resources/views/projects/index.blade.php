@@ -173,7 +173,6 @@
 
                         <div class="d-flex justify-content-between align-items-center mt-2">
                             <div>
-                                <h6 class="mb-2">Anggota Assigned:</h6>
                                 <div class="d-flex flex-wrap">
                                     @php
                                         $assignedUsers = $project->tasks
