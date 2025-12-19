@@ -37,17 +37,20 @@
             <div class="card card-primary card-outline shadow mb-2">
                 <form method="POST" action="{{ route('projects.tasks.store', ['project' => $project->id]) }}">
                     @csrf
-                    <div class="card-body">
 
+                    <div class="card-body">
                         <div class="form-group">
                             <label for="name">Nama Tugas <span class="text-danger">*</span></label>
+
                             <div class="input-group">
                                 <div class="input-group-prepend">
                                     <span class="input-group-text"><i class="fas fa-tasks"></i></span>
                                 </div>
+
                                 <input type="text" name="name" id="name"
                                     class="form-control @error('name') is-invalid @enderror" value="{{ old('name') }}"
                                     required placeholder="Masukkan nama task">
+
                                 @error('name')
                                     <span class="invalid-feedback">{{ $message }}</span>
                                 @enderror
@@ -56,8 +59,10 @@
 
                         <div class="form-group">
                             <label for="description">Deskripsi</label>
+
                             <textarea name="description" id="description" class="form-control @error('description') is-invalid @enderror"
                                 rows="4" placeholder="Deskripsi task (opsional)">{{ old('description') }}</textarea>
+
                             @error('description')
                                 <span class="invalid-feedback">{{ $message }}</span>
                             @enderror
@@ -65,14 +70,20 @@
 
                         <div class="form-group">
                             <label for="due_date">Deadline Tugas <span class="text-danger">*</span></label>
+
                             <input type="date" name="due_date" id="due_date"
                                 class="form-control @error('due_date') is-invalid @enderror" value="{{ old('due_date') }}"
                                 min="{{ date('Y-m-d') }}" required>
-                            <small>Deadline Proyek:
-                                {{ $project->deadline ? \Carbon\Carbon::parse($project->deadline)->format('d M Y') : '-' }}</small>
+
+                            <small>
+                                Deadline Proyek:
+                                {{ $project->deadline ? \Carbon\Carbon::parse($project->deadline)->format('d M Y') : '-' }}
+                            </small>
+
                             <small id="deadline-warning" class="form-text text-danger d-none">
                                 Deadline tugas tidak boleh melebihi deadline proyek.
                             </small>
+
                             @error('due_date')
                                 <span class="invalid-feedback">{{ $message }}</span>
                             @enderror
@@ -83,12 +94,14 @@
                             <select name="status" id="status" class="form-control @error('status') is-invalid @enderror"
                                 required>
                                 <option value="">Pilih Status</option>
+
                                 @foreach ($statuses as $status)
                                     <option value="{{ $status }}" {{ old('status') == $status ? 'selected' : '' }}>
                                         {{ $status }}
                                     </option>
                                 @endforeach
                             </select>
+
                             @error('status')
                                 <span class="invalid-feedback">{{ $message }}</span>
                             @enderror
@@ -96,13 +109,16 @@
 
                         <div class="form-group">
                             <label for="priority">Prioritas <span class="text-danger">*</span></label>
+
                             <div class="input-group">
                                 <div class="input-group-prepend">
                                     <span class="input-group-text"><i class="fas fa-tag"></i></span>
                                 </div>
+
                                 <select name="priority" id="priority"
                                     class="form-control @error('priority') is-invalid @enderror" required>
                                     <option value="" disabled selected>Pilih Prioritas</option>
+
                                     @foreach ($priorities as $priority)
                                         <option value="{{ $priority }}"
                                             {{ old('priority') == $priority ? 'selected' : '' }}>
@@ -110,6 +126,7 @@
                                         </option>
                                     @endforeach
                                 </select>
+
                                 @error('priority')
                                     <span class="invalid-feedback">{{ $message }}</span>
                                 @enderror
@@ -121,34 +138,42 @@
                             <input type="text" class="form-control" value="{{ $project->name }}" readonly>
                         </div>
 
-                        @if (in_array($userRole ?? 'anggota', ['admin', 'ketua_tim']) && !empty($users))
+                        @can('assign tasks')
                             <div class="form-group">
                                 <label for="assigned_to">Ditugaskan Kepada</label>
+
                                 <div class="input-group">
                                     <div class="input-group-prepend">
                                         <span class="input-group-text"><i class="fas fa-user"></i></span>
                                     </div>
+
                                     <select name="assigned_to" id="assigned_to" class="form-control">
                                         <option value="" disabled selected>Tidak Ditugaskan</option>
-                                        @foreach ($users as $user)
-                                            <option value="{{ $user->id }}"
-                                                {{ isset($task) && $task->assigned_to == $user->id ? 'selected' : '' }}>
-                                                {{ $user->name }} ({{ ucwords(str_replace('_', ' ', $user->role)) }})
+
+                                        @foreach ($users as $u)
+                                            <option value="{{ $u->id }}">
+                                                {{ $u->name }}
+                                                ({{ $u->getRoleNames()->map(fn($r) => ucwords(str_replace('_', ' ', $r)))->implode(', ') }})
                                             </option>
                                         @endforeach
                                     </select>
+
                                     @error('assigned_to')
                                         <span class="invalid-feedback">{{ $message }}</span>
                                     @enderror
                                 </div>
                             </div>
-                        @endif
+                        @endcan
+
                     </div>
 
                     <div class="card-footer d-flex justify-content-center flex-wrap">
                         <a href="{{ route('projects.tasks.index', $project) }}"
                             class="btn btn-secondary mr-2 mb-1">Batal</a>
-                        <button type="submit" class="btn btn-primary mb-1">Simpan Tugas</button>
+
+                        <button type="submit" class="btn btn-primary mb-1">
+                            Simpan Tugas
+                        </button>
                     </div>
                 </form>
             </div>
@@ -157,28 +182,15 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            const projectSelect = document.getElementById('project_id');
             const dueDateInput = document.getElementById('due_date');
             const warning = document.getElementById('deadline-warning');
+            const projectDeadline = "{{ $project->deadline }}";
 
-            projectSelect.addEventListener('change', function() {
-                const selectedOption = projectSelect.options[projectSelect.selectedIndex];
-                const projectDeadline = selectedOption.getAttribute('data-deadline');
-
-                if (projectDeadline) {
-                    dueDateInput.max = projectDeadline;
-                } else {
-                    dueDateInput.removeAttribute('max');
-                }
-
-                dueDateInput.value = '';
-                warning.classList.add('d-none');
-            });
+            if (projectDeadline) {
+                dueDateInput.max = projectDeadline;
+            }
 
             dueDateInput.addEventListener('change', function() {
-                const selectedOption = projectSelect.options[projectSelect.selectedIndex];
-                const projectDeadline = selectedOption.getAttribute('data-deadline');
-
                 if (projectDeadline && dueDateInput.value > projectDeadline) {
                     warning.classList.remove('d-none');
                     dueDateInput.value = projectDeadline;

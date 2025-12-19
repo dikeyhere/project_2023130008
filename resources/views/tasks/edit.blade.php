@@ -53,12 +53,20 @@
                                 </div>
                                 <input type="date" name="due_date" id="due_date"
                                     class="form-control @error('due_date') is-invalid @enderror"
-                                    value="{{ old('due_date', $task->due_date ? $task->due_date->format('Y-m-d') : '') }}"
-                                    min="{{ date('Y-m-d') }}" required>
+                                    value="{{ old('due_date', $task->due_date ? \Carbon\Carbon::parse($task->due_date)->format('Y-m-d') : '') }}"
+                                    min="{{ date('Y-m-d') }}"
+                                    max="{{ $task->project->deadline ? \Carbon\Carbon::parse($task->project->deadline)->format('Y-m-d') : '' }}"
+                                    required>
                                 @error('due_date')
                                     <span class="invalid-feedback">{{ $message }}</span>
                                 @enderror
                             </div>
+                            <small>Deadline Proyek:
+                                {{ $task->project->deadline ? \Carbon\Carbon::parse($task->project->deadline)->format('d M Y') : '-' }}
+                            </small>
+                            <small id="deadline-warning" class="form-text text-danger d-none">
+                                Deadline tugas tidak boleh melebihi deadline proyek.
+                            </small>
                         </div>
 
                         <div class="form-group">
@@ -73,7 +81,8 @@
                                     @foreach ($statuses as $status)
                                         <option value="{{ $status }}"
                                             {{ old('status', $task->status) == $status ? 'selected' : '' }}>
-                                            {{ $status }}</option>
+                                            {{ $status }}
+                                        </option>
                                     @endforeach
                                 </select>
                                 @error('status')
@@ -120,7 +129,7 @@
                                         <option value="" disabled>Tidak Ditugaskan</option>
                                         @foreach ($users as $user)
                                             <option value="{{ $user->id }}"
-                                                {{ isset($task) && $task->assigned_to == $user->id ? 'selected' : '' }}>
+                                                {{ old('assigned_to', $task->assigned_to) == $user->id ? 'selected' : '' }}>
                                                 {{ $user->name }} ({{ ucwords(str_replace('_', ' ', $user->role)) }})
                                             </option>
                                         @endforeach
@@ -135,11 +144,29 @@
 
                     <div class="card-footer">
                         <button type="submit" class="btn btn-warning">Update Tugas</button>
-                        <a href="{{ route('projects.tasks.index', ['project' => $task->project_id, 'task' => $task->id]) }}"
+                        <a href="{{ route('projects.tasks.index', ['project' => $task->project_id]) }}"
                             class="btn btn-secondary float-right">Batal</a>
                     </div>
                 </form>
             </div>
         </div>
     </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const dueDateInput = document.getElementById('due_date');
+            const projectDeadline =
+                '{{ $task->project->deadline ? \Carbon\Carbon::parse($task->project->deadline)->format('Y-m-d') : '' }}';
+            const warning = document.getElementById('deadline-warning');
+
+            dueDateInput.addEventListener('change', function() {
+                if (projectDeadline && dueDateInput.value > projectDeadline) {
+                    warning.classList.remove('d-none');
+                    dueDateInput.value = projectDeadline;
+                } else {
+                    warning.classList.add('d-none');
+                }
+            });
+        });
+    </script>
 @endsection

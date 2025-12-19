@@ -13,34 +13,31 @@ class ProjectController extends Controller
     public function __construct()
     {
         $this->middleware('auth');
-        $this->middleware(function ($request, $next) {
-            if (!in_array(auth()->user()->role, ['admin', 'ketua_tim'])) {
-                abort(403, 'Akses ditolak. Hanya admin atau ketua tim yang bisa mengelola proyek.');
-            }
-            return $next($request);
-        })->except(['index']);
+
+        $this->middleware('permission:view projects')->only(['index']);
+        $this->middleware('permission:view project detail')->only(['show']);
+        $this->middleware('permission:create projects')->only(['create', 'store']);
+        $this->middleware('permission:edit projects')->only(['edit', 'update']);
+        $this->middleware('permission:delete projects')->only(['destroy']);
     }
 
     public function index(Request $request)
     {
+        /** @var User $user */
+        $user = auth()->user();
         $search = $request->query('search');
         $filterPriority = $request->query('filter_priority');
         $filterStatus = $request->query('filter_status');
         $sortBy = $request->query('sort_by');
 
-        $user = auth()->user();
-        $userRole = $user->role ?? 'anggota_tim';
-
         $projects = Project::query()->with(['tasks.assignee']);
 
-        if ($userRole === 'ketua_tim') {
+        if ($user->hasRole('ketua_tim')) {
             $projects->where('team_leader_id', $user->id);
-        } elseif ($userRole === 'anggota_tim') {
+        } elseif ($user->hasRole('anggota_tim')) {
             $projects->whereHas('tasks', function ($q) use ($user) {
                 $q->where('assigned_to', $user->id);
             });
-        } elseif ($userRole !== 'admin') {
-            abort(403, 'Anda tidak memiliki akses ke proyek.');
         }
 
         if ($filterStatus) $projects->where('status', $filterStatus);
@@ -65,20 +62,14 @@ class ProjectController extends Controller
         }
 
         $projects = $projects->get();
+        $userRole = $user->getRoleNames()->first() ?? 'anggota_tim';
 
         return view('projects.index', compact('projects', 'search', 'filterPriority', 'filterStatus', 'sortBy', 'userRole'));
     }
 
     public function create()
     {
-        $user = Auth::user();
-        $userRole = $user->role ?? 'anggota_tim';
-
-        if ($userRole !== 'admin') {
-            abort(403, 'Akses ditolak. Hanya admin yang bisa membuat proyek.');
-        }
-
-        $teamLeaders = User::where('role', 'ketua_tim')->orderBy('name')->get();
+        $teamLeaders = User::role('ketua_tim')->orderBy('name')->get();
         $statuses = ['Planning', 'In Progress', 'Completed', 'On Hold'];
 
         return view('projects.create', compact('statuses', 'teamLeaders'));
@@ -87,11 +78,6 @@ class ProjectController extends Controller
     public function store(Request $request)
     {
         $user = Auth::user();
-        $userRole = $user->role ?? 'anggota_tim';
-
-        if ($userRole !== 'admin') {
-            return redirect()->route('projects.index')->with('error', 'Akses ditolak.');
-        }
 
         $request->validate([
             'name' => 'required|string|max:255',
@@ -100,10 +86,11 @@ class ProjectController extends Controller
             'priority' => ['required', Rule::in(['high', 'medium', 'low'])],
             'deadline' => 'nullable|date|after_or_equal:today',
             'team_leader_id' => 'required|exists:users,id',
+            'budget' => 'required|numeric|min:0',
         ]);
 
-        $leader = User::find($request->team_leader_id);
-        if ($leader->role !== 'ketua_tim') {
+        $leader = User::findOrFail($request->team_leader_id);
+        if (!$leader->hasRole('ketua_tim')) {
             return back()->withErrors(['team_leader_id' => 'User yang dipilih bukan Ketua Tim yang valid.']);
         }
 
@@ -115,6 +102,7 @@ class ProjectController extends Controller
             'priority' => $request->priority,
             'deadline' => $request->deadline,
             'team_leader_id' => $request->team_leader_id,
+            'budget' => $request->budget,
         ]);
 
         return redirect()->route('projects.index')->with('success', 'Proyek berhasil dibuat!');
@@ -122,21 +110,22 @@ class ProjectController extends Controller
 
     public function show(Project $project)
     {
+        /** @var User $user */
         $user = auth()->user();
-        $userRole = $user->role ?? 'anggota_tim';
 
-        $hasTask = $project->tasks()->where('assigned_to', $user->id)->exists();
+        if (
+            $user->can('view project detail') &&
+            ($user->hasRole('admin') ||
+                ($user->hasRole('ketua_tim') && $project->team_leader_id === $user->id) ||
+                ($user->hasRole('anggota_tim') && $project->tasks()->where('assigned_to', $user->id)->exists()))
+        ) {
+            $userRole = $user->getRoleNames()->first() ?? 'anggota_tim';
 
-        if ($userRole === 'admin') {
-            return view('projects.show', compact('project', 'userRole'));
-        }
+            $expenses = $project->expenses()->with('user')->latest()->get();
+            $approvedExpense = $project->expenses()->where('status', 'approved')->sum('amount');
+            $remainingBudget = $project->budget - $approvedExpense;
 
-        if ($userRole === 'ketua_tim' && $project->team_leader_id === $user->id) {
-            return view('projects.show', compact('project', 'userRole'));
-        }
-
-        if ($userRole === 'anggota_tim' && $project->tasks()->where('assigned_to', $user->id)->exists()) {
-            return view('projects.show', compact('project', 'userRole'));
+            return view('projects.show', compact('project', 'userRole', 'expenses', 'approvedExpense', 'remainingBudget'));
         }
 
         abort(403, 'Anda tidak memiliki akses ke proyek ini.');
@@ -145,14 +134,13 @@ class ProjectController extends Controller
     public function edit(Project $project)
     {
         $user = Auth::user();
-        $userRole = $user->role ?? 'anggota_tim';
 
-        if (!in_array($userRole, ['admin', 'ketua_tim'])) {
+        if (!$user->can('edit projects')) {
             abort(403, 'Akses ditolak.');
         }
 
         $statuses = ['Planning', 'In Progress', 'Completed', 'On Hold'];
-        $teamLeaders = User::where('role', 'ketua_tim')->get();
+        $teamLeaders = User::role('ketua_tim')->get();
 
         return view('projects.edit', compact('project', 'statuses', 'teamLeaders'));
     }
@@ -160,9 +148,8 @@ class ProjectController extends Controller
     public function update(Request $request, Project $project)
     {
         $user = Auth::user();
-        $userRole = $user->role ?? 'anggota_tim';
 
-        if (!in_array($userRole, ['admin', 'ketua_tim'])) {
+        if (!$user->can('edit projects')) {
             return redirect()->route('projects.index')->with('error', 'Akses ditolak.');
         }
 
@@ -172,7 +159,8 @@ class ProjectController extends Controller
             'status' => ['required', Rule::in(['Planning', 'In Progress', 'Completed', 'On Hold'])],
             'priority' => ['required', Rule::in(['high', 'medium', 'low'])],
             'deadline' => 'nullable|date|after_or_equal:today',
-            'team_leader_id' => 'required|exists:users,id', // pastikan ketua tim valid
+            'team_leader_id' => 'required|exists:users,id',
+            'budget' => 'required|numeric|min:0',
         ]);
 
         if ($request->status === 'Completed') {
@@ -184,14 +172,7 @@ class ProjectController extends Controller
             }
         }
 
-        $project->update([
-            'name' => $request->name,
-            'description' => $request->description,
-            'status' => $request->status,
-            'priority' => $request->priority,
-            'deadline' => $request->deadline,
-            'team_leader_id' => $validated['team_leader_id'],
-        ]);
+        $project->update($validated);
 
         return redirect()->route('projects.index')->with('success', 'Proyek berhasil diupdate!');
     }
@@ -199,9 +180,8 @@ class ProjectController extends Controller
     public function destroy(Project $project)
     {
         $user = Auth::user();
-        $userRole = $user->role ?? 'anggota_tim';
 
-        if ($userRole !== 'admin') {
+        if (!$user->can('delete projects')) {
             return redirect()->route('projects.index')->with('error', 'Akses ditolak.');
         }
 

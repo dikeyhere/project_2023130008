@@ -104,6 +104,25 @@
             font-size: 0.85rem;
             color: #a0a0a0;
         }
+
+        .captcha-img {
+            display: block;
+            margin: 10px auto;
+        }
+
+        .refresh-btn {
+            background: none;
+            border: none;
+            color: #007bff;
+            text-decoration: underline;
+            cursor: pointer;
+            font-size: 0.9rem;
+            margin-top: 5px;
+        }
+
+        .refresh-btn:hover {
+            color: #0056b3;
+        }
     </style>
 </head>
 
@@ -115,13 +134,15 @@
             @csrf
             <div class="mb-3 text-start">
                 <label for="name">Nama</label>
-                <input id="name" type="text" name="name" :value="old('name')" required autofocus autocomplete="name">
+                <input id="name" type="text" name="name" value="{{ old('name') }}" required autofocus
+                    autocomplete="name">
                 <x-input-error :messages="$errors->get('name')" class="mt-2" />
             </div>
 
             <div class="mb-3 text-start">
                 <label for="email">Email</label>
-                <input id="email" type="email" name="email" :value="old('email')" required autocomplete="username">
+                <input id="email" type="email" name="email" value="{{ old('email') }}" required
+                    autocomplete="username">
                 <x-input-error :messages="$errors->get('email')" class="mt-2" />
             </div>
 
@@ -145,9 +166,23 @@
                     <option value="" selected disabled>Pilih Peran</option>
                     <option value="admin" {{ old('role') == 'admin' ? 'selected' : '' }}>Admin</option>
                     <option value="ketua_tim" {{ old('role') == 'ketua_tim' ? 'selected' : '' }}>Ketua Tim</option>
-                    <option value="anggota_tim" {{ old('role') == 'anggota_tim' ? 'selected' : '' }}>Anggota Tim</option>
+                    <option value="anggota_tim" {{ old('role') == 'anggota_tim' ? 'selected' : '' }}>Anggota Tim
+                    </option>
                 </select>
                 <x-input-error :messages="$errors->get('role')" class="mt-2" />
+            </div>
+
+            <div class="mb-3 mt-3 text-start">
+                <label for="captcha">Masukkan kode CAPTCHA</label>
+                <div class="d-flex align-items-center gap-2">
+                    <span id="captcha-img">{!! captcha_img('default') !!}</span>
+                    <button type="button" class="btn btn-sm btn-outline-secondary"
+                        onclick="refreshCaptcha()">↻</button>
+                </div>
+                <input type="text" name="captcha" class="form-control mt-0" required>
+                @error('captcha')
+                    <span class="text-danger small">{{ $message }}</span>
+                @enderror
             </div>
 
             <button type="submit" class="btn btn-register">Daftar</button>
@@ -159,6 +194,17 @@
     <footer>
         Project Manajemen Tugas Tim - 2023130008 Andika
     </footer>
+
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script>
+        function refreshCaptcha() {
+            fetch('{{ route('refreshCaptcha') }}')
+                .then(res => res.json())
+                .then(data => {
+                    document.getElementById('captcha-img').innerHTML = data.captcha;
+                });
+        }
+    </script>
 </body>
 
 </html>

@@ -131,15 +131,32 @@
 
             <div class="mb-0 text-start">
                 <label for="password">Password</label>
-                <input class="mb-1" id="password" type="password" name="password" required autocomplete="current-password">
+                <input class="mb-1" id="password" type="password" name="password" required
+                    autocomplete="current-password">
                 <x-input-error :messages="$errors->get('password')" class="mt-2" />
             </div>
 
-            {{-- @if (Route::has('password.request'))
+            @if (Route::has('password.request'))
                 <div class="text-end mt-0">
-                    <a href="{{ route('password.request') }}" class="link-forgot mb-0">Lupa kata sandi?</a>
+                    <a href="{{ route('password.request') }}" class="link-forgot mb-0">Lupa Password?</a>
                 </div>
-            @endif --}}
+            @endif
+
+            <div class="mb-3 mt-4 text-start">
+                <label for="captcha">Masukkan kode CAPTCHA</label>
+                <div class="d-flex align-items-center gap-2">
+                    <span id="captcha-img">{!! captcha_img('default') !!}</span>
+                    <button type="button" class="btn btn-sm btn-outline-secondary"
+                        onclick="refreshCaptcha()">↻</button>
+                </div>
+                <input type="text" name="captcha" class="form-control mt-1" required>
+                @error('captcha')
+                    <span class="text-danger small">{{ $message }}</span>
+                @enderror
+            </div>
+
+
+
 
             <div class="form-check text-start mb-3">
                 <input id="remember_me" type="checkbox" class="form-check-input" name="remember">
@@ -155,6 +172,17 @@
     <footer>
         Project Manajemen Tugas Tim - 2023130008 Andika
     </footer>
+    <script>
+        function refreshCaptcha() {
+            fetch('{{ route('refreshCaptcha') }}')
+                .then(res => res.json())
+                .then(data => {
+                    document.getElementById('captcha-img').innerHTML = data.captcha;
+                });
+        }
+    </script>
+
 </body>
+
 
 </html>

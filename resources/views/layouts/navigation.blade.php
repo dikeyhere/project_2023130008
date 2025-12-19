@@ -12,19 +12,19 @@
         </button>
 
         <div class="collapse navbar-collapse" id="navbarSupportedContent">
-
             <ul class="navbar-nav me-auto mb-2 mb-lg-0">
                 <x-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
                     {{ __('Dashboard') }}
                 </x-nav-link>
 
                 @auth
-                    @if (auth()->user()->role === 'admin' || auth()->user()->role === 'ketua_tim')
+                    @if (auth()->user()->hasAnyRole(['admin', 'ketua_tim']))
                         <x-nav-link :href="route('projects.index')" :active="request()->routeIs('projects.*')">
                             {{ __('Projects') }}
                         </x-nav-link>
                     @endif
-                    @if (auth()->user()->role === 'admin' || auth()->user()->role === 'ketua_tim' || auth()->user()->role === 'anggota_tim')
+
+                    @if (auth()->user()->hasAnyRole(['admin', 'ketua_tim', 'anggota_tim']))
                         <x-nav-link :href="route('tasks.index')" :active="request()->routeIs('tasks.*')">
                             {{ __('Tasks') }}
                         </x-nav-link>
@@ -34,33 +34,43 @@
 
             <ul class="navbar-nav ms-auto">
                 @auth
+                    @php
+                        $role = auth()->user()->getRoleNames()->first();
+                    @endphp
+
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" role="button" id="userDropdown"
-                            data-bs-toggle="dropdown" data-toggle="dropdown" aria-expanded="false">
+                            data-bs-toggle="dropdown" aria-expanded="false">
                             <i class="far fa-user"></i>
+
                             <span class="d-none d-md-inline ml-1">{{ Auth::user()->name }}</span>
-                            @if (Auth::user()->role)
+
+                            @if ($role)
                                 <span
-                                    class="badge badge-{{ Auth::user()->role === 'admin' ? 'danger' : (Auth::user()->role === 'ketua_tim' ? 'warning' : 'info') }} ml-1">
-                                    {{ ucfirst(Auth::user()->role) }}
+                                    class="badge badge-{{ $role === 'admin' ? 'danger' : ($role === 'ketua_tim' ? 'warning' : 'info') }} ml-1">
+                                    {{ ucwords(str_replace('_', ' ', $role)) }}
                                 </span>
                             @endif
                         </a>
+
                         <ul class="dropdown-menu dropdown-menu-lg dropdown-menu-right" aria-labelledby="userDropdown">
                             <li><span class="dropdown-item dropdown-header">Profile: {{ Auth::user()->name }}</span></li>
+
                             <li>
                                 <hr class="dropdown-divider">
                             </li>
+
                             <li>
                                 <a href="{{ route('profile.edit') }}" class="dropdown-item">
                                     <i class="fas fa-user mr-2"></i>Profile
                                 </a>
                             </li>
+
                             <li>
                                 <hr class="dropdown-divider">
                             </li>
-                            <li>
 
+                            <li>
                                 <form method="POST" action="{{ route('logout') }}" class="dropdown-item p-0"
                                     style="display: inline-block; width: 100%;">
                                     @csrf
@@ -80,5 +90,6 @@
                 @endauth
             </ul>
         </div>
+
     </div>
 </nav>

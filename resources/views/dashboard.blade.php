@@ -17,8 +17,8 @@
     @if ($showWelcome)
         <div class="row">
             <div class="col-12">
-                <div class="alert alert-{{ $userRole === 'admin' ? 'success' : ($userRole === 'ketua_tim' ? 'warning' : 'info') }} alert-dismissible fade show border rounded"
-                    role="alert" style="background-color: #76afe9; border-color: #dee2e6; color: #212121">
+                <div class="alert alert-dismissible fade show border rounded" role="alert"
+                    style="background-color: #76afe9; border-color: #dee2e6; color: #212121">
                     Selamat datang, {{ Auth::user()->name }}!
                     <button type="button" class="close" data-dismiss="alert" aria-label="Close">
                         <span aria-hidden="true">&times;</span>
@@ -30,7 +30,7 @@
 
     <div class="row">
         <div class="col-lg-3 col-6">
-            @if (in_array($userRole, ['admin', 'ketua_tim']))
+            @role('admin|ketua_tim')
                 <div class="small-box bg-info">
                     <div class="inner">
                         <h3>{{ $totalProjects ?? 0 }}</h3>
@@ -39,9 +39,6 @@
                     <div class="icon">
                         <i class="fas fa-project-diagram"></i>
                     </div>
-                    {{-- <a href="{{ route('projects.index') }}" class="small-box-footer" title="Lihat detail proyek">
-                    Lihat Semua <i class="fas fa-arrow-circle-right"></i>
-                </a> --}}
                 </div>
             @else
                 <div class="small-box bg-warning">
@@ -52,15 +49,12 @@
                     <div class="icon">
                         <i class="fas fa-tasks"></i>
                     </div>
-                    {{-- <a href="{{ route('tasks.index') }}" class="small-box-footer" title="Lihat detail tugas">
-                    Lihat Semua <i class="fas fa-arrow-circle-right"></i>
-                </a> --}}
                 </div>
-            @endif
+            @endrole
         </div>
 
         <div class="col-lg-3 col-6">
-            @if (in_array($userRole, ['admin', 'ketua_tim']))
+            @role('admin|ketua_tim')
                 <div class="small-box bg-success">
                     <div class="inner">
                         <h3>{{ $completedProjects ?? 0 }}</h3>
@@ -69,9 +63,6 @@
                     <div class="icon">
                         <i class="fas fa-check-circle"></i>
                     </div>
-                    {{-- <a href="{{ route('projects.index') }}" class="small-box-footer" title="Lihat proyek selesai">
-                    Lihat Semua <i class="fas fa-arrow-circle-right"></i>
-                </a> --}}
                 </div>
             @else
                 <div class="small-box bg-success">
@@ -82,15 +73,12 @@
                     <div class="icon">
                         <i class="fas fa-check-circle"></i>
                     </div>
-                    {{-- <a href="{{ route('projects.index') }}" class="small-box-footer" title="Lihat proyek selesai">
-                    Lihat Semua <i class="fas fa-arrow-circle-right"></i>
-                </a> --}}
                 </div>
-            @endif
+            @endrole
         </div>
 
         <div class="col-lg-3 col-6">
-            @if (in_array($userRole, ['admin', 'ketua_tim']))
+            @role('admin|ketua_tim')
                 <div class="small-box bg-warning">
                     <div class="inner">
                         <h3 class="text-white">{{ $totalTasks ?? 0 }}</h3>
@@ -99,9 +87,6 @@
                     <div class="icon">
                         <i class="fas fa-tasks"></i>
                     </div>
-                    {{-- <a href="{{ route('tasks.index') }}" class="small-box-footer" title="Lihat detail tugas">
-                    Lihat Semua <i class="fas fa-arrow-circle-right"></i>
-                </a> --}}
                 </div>
             @else
                 <div class="small-box bg-info">
@@ -112,11 +97,8 @@
                     <div class="icon">
                         <i class="fas fa-project-diagram"></i>
                     </div>
-                    {{-- <a href="{{ route('projects.index') }}" class="small-box-footer" title="Lihat detail proyek">
-                    Lihat Semua <i class="fas fa-arrow-circle-right"></i>
-                </a> --}}
                 </div>
-            @endif
+            @endrole
         </div>
 
         <div class="col-lg-3 col-6">
@@ -155,9 +137,9 @@
                     @if (empty($recentProjects) || $recentProjects->count() === 0)
                         <div class="alert alert-info m-3">
                             Belum ada proyek.
-                            @if ($userRole === 'admin')
+                            @role('admin')
                                 <a href="{{ route('projects.create') }}">Mulai buat sekarang!</a>
-                            @endif
+                            @endrole
                         </div>
                     @else
                         <div class="table-responsive">
@@ -168,7 +150,6 @@
                                         <th>Status</th>
                                         <th>Jumlah Tugas</th>
                                         <th>Progress</th>
-                                        {{-- <th>Aksi</th> --}}
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -193,14 +174,13 @@
                                             <td style="text-align:center">
                                                 <span class="badge badge-info">{{ $project->tasks->count() ?? 0 }}</span>
                                             </td>
-
                                             <td style="width: 20%; vertical-align:middle">
                                                 @php
                                                     $progress = $project->progress ?? 0;
                                                 @endphp
                                                 <div class="progress rounded" style="height: 17px;">
                                                     <div class="progress-bar 
-                                                    {{ $progress == 100 ? 'bg-success' : ($progress >= 50 ? 'bg-info' : 'bg-warning') }}"
+                                                        {{ $progress == 100 ? 'bg-success' : ($progress >= 50 ? 'bg-info' : 'bg-warning') }}"
                                                         role="progressbar" style="width: {{ $progress }}%;"
                                                         aria-valuenow="{{ $progress }}" aria-valuemin="0"
                                                         aria-valuemax="100">
@@ -208,34 +188,6 @@
                                                     </div>
                                                 </div>
                                             </td>
-
-                                            {{-- Aksi --}}
-                                            {{-- <td style="text-align:center">
-                                                <a href="{{ route('projects.show', $project->id) }}"
-                                                    class="btn btn-sm btn-info" title="Lihat detail">
-                                                    <i class="fas fa-eye"></i>
-                                                </a>
-
-                                                @if (in_array($userRole, ['admin', 'ketua_tim']))
-                                                    <a href="{{ route('projects.edit', $project->id) }}"
-                                                        class="btn btn-sm btn-warning ml-1" title="Edit">
-                                                        <i class="fas fa-edit"></i>
-                                                    </a>
-                                                    <a href="{{ route('projects.show', $project) }}"
-                                                        class="btn btn-sm btn-primary ml-1" title="Kelola Tugas">
-                                                        <i class="fas fa-tasks"></i>
-                                                    </a>
-                                                    {{-- <a href="{{ route('projects.tasks.create', $project) }}"
-                                                        class="btn btn-sm btn-success ml-1" title="Tambah Task">
-                                                        <i class="fas fa-plus"></i>
-                                                    </a> --}}
-                                            {{-- @else
-                                                    <a href="{{ route('projects.show', $project) }}"
-                                                        class="btn btn-sm btn-primary ml-1" title="Lihat Tugas">
-                                                        <i class="fas fa-tasks"></i> Lihat Tugas
-                                                    </a>
-                                                @endif
-                                            </td> --}}
                                         </tr>
                                     @endforeach
                                 </tbody>
@@ -252,18 +204,9 @@
             <div class="card card-primary">
                 <div class="card-header">
                     <h3 class="card-title">Distribusi Status Proyek</h3>
-                    <div class="card-tools">
-                        <button type="button" class="btn btn-tool" data-card-widget="collapse" title="Collapse">
-                            <i class="fas fa-minus"></i>
-                        </button>
-                    </div>
                 </div>
                 <div class="card-body">
-                    @if (empty($projectStatuses) || count($projectStatuses) === 0)
-                        <div class="alert alert-warning text-center">Belum ada data status proyek untuk ditampilkan.</div>
-                    @else
-                        <canvas id="projectsChart" height="300"></canvas>
-                    @endif
+                    <canvas id="projectsChart" height="300"></canvas>
                 </div>
             </div>
         </div>
@@ -277,74 +220,70 @@
             const ctx = document.getElementById('projectsChart');
             if (ctx) {
                 const totalProjects = {{ $totalProjects ?? 0 }};
-                const statuses = @json($projectStatuses ?? []);
-                if (Object.keys(statuses).length > 0) {
-                    new Chart(ctx, {
-                        type: 'pie',
-                        data: {
-                            labels: Object.keys(statuses),
-                            datasets: [{
-                                data: Object.values(statuses),
-                                backgroundColor: [
-                                    '#17a2b8',
-                                    '#ffc107',
-                                    '#28a745',
-                                    '#dc3545'
-                                ],
-                                borderWidth: 2,
-                                borderColor: '#fff'
-                            }]
-                        },
-                        options: {
-                            responsive: true,
-                            maintainAspectRatio: false,
-                            plugins: {
-                                legend: {
-                                    position: 'bottom',
-                                    labels: {
-                                        padding: 20
-                                    }
-                                },
-                                title: {
-                                    display: true,
-                                    text: 'Status Proyek (Total: ' + totalProjects + ')',
-                                    font: {
-                                        size: 16
-                                    }
-                                },
-                                tooltip: {
-                                    callbacks: {
-                                        label: function(context) {
-                                            const total = context.dataset.data.reduce((a, b) => a + b,
-                                                0);
-                                            const percentage = total > 0 ? Math.round((context.parsed /
-                                                total) * 100) : 0;
-                                            return context.label + ': ' + context.parsed + ' (' +
-                                                percentage + '%)';
-                                        }
-                                    }
+                const statuses = @json($projectStatuses ?? ['Planning' => 0, 'In Progress' => 0, 'Completed' => 0]);
+
+                new Chart(ctx, {
+                    type: 'pie',
+                    data: {
+                        labels: Object.keys(statuses),
+                        datasets: [{
+                            data: Object.values(statuses),
+                            backgroundColor: [
+                                '#17a2b8',
+                                '#ffc107', 
+                                '#28a745', 
+                                '#dc3545'
+                            ],
+                            borderWidth: 2,
+                            borderColor: '#fff'
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                labels: {
+                                    padding: 20
                                 }
                             },
-                            animation: {
-                                animateRotate: true,
-                                duration: 2000
+                            title: {
+                                display: true,
+                                text: 'Status Proyek (Total: ' + totalProjects + ')',
+                                font: {
+                                    size: 16
+                                }
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                        const percentage = total > 0 ? Math.round((context.parsed /
+                                            total) * 100) : 0;
+                                        return context.label + ': ' + context.parsed + ' (' +
+                                            percentage + '%)';
+                                    }
+                                }
                             }
+                        },
+                        animation: {
+                            animateRotate: true,
+                            duration: 2000
                         }
-                    });
+                    }
+                });
+            }
+
+            $('.small-box').hover(
+                function() {
+                    $(this).addClass('shadow-lg');
+                },
+                function() {
+                    $(this).removeClass('shadow-lg');
                 }
-            }
-        });
+            );
 
-        $('.small-box').hover(
-            function() {
-                $(this).addClass('shadow-lg');
-            },
-            function() {
-                $(this).removeClass('shadow-lg');
-            }
-        );
-
-        $(document).ready(function() {
             setTimeout(function() {
                 $('.alert').fadeOut('slow', function() {
                     $(this).alert('close');
