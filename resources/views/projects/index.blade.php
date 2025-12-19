@@ -214,9 +214,11 @@
                         @endcan
 
                         @can('edit projects')
+                        @if ($progress < 100)
                             <a href="{{ route('projects.edit', $project) }}" class="btn btn-warning btn-sm ml-2">
                                 <i class="fas fa-edit mr-1"></i> Edit
                             </a>
+                        @endif
                         @endcan
 
                         @can('delete projects')
